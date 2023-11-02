@@ -58,6 +58,10 @@ public class Client implements Serializable {
         balance -= amount;
     }
 
+    public void addToBalance(double amount) {
+        balance += amount;
+    }
+
     public String getId() {
         return id;
     }

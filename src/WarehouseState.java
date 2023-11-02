@@ -1,0 +1,3 @@
+interface WarehouseState {
+    void run();
+}
