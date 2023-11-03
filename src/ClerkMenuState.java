@@ -57,7 +57,12 @@ public class ClerkMenuState implements WarehouseState {
             String input = Utilities.getUserInput();
 
             System.out.println();
-            executeOption(Integer.parseInt(input));
+            try {
+                executeOption(Integer.parseInt(input));
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input");
+            }
+
         }
     }
 
@@ -94,6 +99,7 @@ public class ClerkMenuState implements WarehouseState {
         } else {
             System.out.println("\nClient not added");
         }
+        System.out.println();
     }
 
     public static void printClients() {
@@ -174,6 +180,7 @@ public class ClerkMenuState implements WarehouseState {
                     client.getId(), client.getName(), client.getAddress(), client.getBalance());
         }
         System.out.println(horizontalLine);
+        System.out.println();
     }
 
     /*
@@ -256,10 +263,12 @@ public class ClerkMenuState implements WarehouseState {
                     product.getId(), product.getName(), product.getPrice(), product.getQuantity());
         }
         System.out.println(horizontalLine);
+        System.out.println();
     }
 
     public void printClientsWithOutstandingBalance() {
         Iterator<Client> clientIterator = Warehouse.instance().getClientIterator();
+        System.out.println("Clients with negative balance: \n");
         while (clientIterator.hasNext()) {
             Client client = clientIterator.next();
             if (client.getBalance() < 0) {
@@ -285,11 +294,13 @@ public class ClerkMenuState implements WarehouseState {
         double paymentAmount = Double.parseDouble(Utilities.getUserInput());
 
         if (paymentAmount < 0) {
-            System.out.println("Payment amount must be non-negative");
+            System.out.println();
+            System.out.println("Error: Payment amount must be non-negative");
             return;
         }
 
         client.get().addToBalance(paymentAmount);
+        System.out.println();
         System.out.printf("Client %s new balance: %.2f\n", client.get().getName(), client.get().getBalance());
     }
 }

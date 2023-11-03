@@ -69,12 +69,11 @@ public class WarehouseContext {
 
     private void terminate() {
         if (Warehouse.serializeWarehouse()) {
-            System.out.println(" The library has been successfully saved in the file LibraryData \n");
+            System.out.println("The warehouse has been successfully saved in the file warehouse.ser \n");
         } else {
-            System.out.println(" There has been an error in saving \n");
+            System.out.println("There has been an error in saving \n");
         }
-//        }
-        System.out.println(" Goodbye \n ");
+        System.out.println("Goodbye \n ");
         systemRunning = false;
         System.exit(0);
     }

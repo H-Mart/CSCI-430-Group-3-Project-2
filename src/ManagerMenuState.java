@@ -45,7 +45,11 @@ public class ManagerMenuState implements WarehouseState {
             System.out.print("> ");
             String input = Utilities.getUserInput();
             System.out.println();
-            executeOption(Integer.parseInt(input));
+            try {
+                executeOption(Integer.parseInt(input));
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input");
+            }
         }
     }
 
@@ -90,6 +94,7 @@ public class ManagerMenuState implements WarehouseState {
             addProduct();
             System.out.print("\nAdd another product? (y/n): ");
             String input = Utilities.getUserInput();
+            System.out.println();
             if (input.equalsIgnoreCase("n")) {
                 break;
             }
@@ -99,6 +104,7 @@ public class ManagerMenuState implements WarehouseState {
     private static void printWaitlist() {
         System.out.print("Enter product id: ");
         String productId = Utilities.getUserInput();
+        System.out.println();
 
         Optional<Product> product = Warehouse.instance().getProductById(productId);
 
@@ -160,7 +166,9 @@ public class ManagerMenuState implements WarehouseState {
             System.out.println("    1. Order Waitlisted Amount");
             System.out.println("    2. Order Different Amount");
             System.out.println("    3. Skip");
+            System.out.print("> ");
             String input = Utilities.getUserInput();
+            System.out.println();
 
             switch (input) {
                 case "1": // order waitlisted amount

@@ -56,7 +56,11 @@ public class ClientMenuState implements WarehouseState {
             String input = Utilities.getUserInput();
 
             System.out.println();
-            executeOption(Integer.parseInt(input));
+            try {
+                executeOption(Integer.parseInt(input));
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input");
+            }
         }
     }
 
@@ -76,6 +80,7 @@ public class ClientMenuState implements WarehouseState {
         System.out.println("Client Name: " + client.get().getName());
         System.out.println("Client Address: " + client.get().getAddress());
         System.out.println("Client Balance: " + client.get().getBalance());
+        System.out.println();
     }
 
     /*
@@ -158,24 +163,25 @@ public class ClientMenuState implements WarehouseState {
                     product.getId(), product.getName(), product.getPrice(), product.getQuantity());
         }
         System.out.println(horizontalLine);
+        System.out.println();
     }
 
     private static void printClientWishlist() {
         String clientId = WarehouseContext.currentClientId;
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (client.isEmpty()) {
-            System.out.println("Client not found");
+            System.out.println("Client not found\n");
             return;
         }
 
         var clientWishlistIterator = client.get().getWishlist().getIterator();
 
         if (!clientWishlistIterator.hasNext()) {
-            System.out.println("\nWishlist is empty");
+            System.out.println("Wishlist is empty\n");
             return;
         }
 
-        System.out.println("\nCurrent Wishlist: ");
+        System.out.println("Current Wishlist: ");
 
         while (clientWishlistIterator.hasNext()) {
             var wishlistItem = clientWishlistIterator.next();
@@ -207,7 +213,7 @@ public class ClientMenuState implements WarehouseState {
             return;
         }
 
-        System.out.println("\nOrder History: ");
+        System.out.println("Order History: ");
 
         while (clientTransactionIterator.hasNext()) {
             var transactionRecord = clientTransactionIterator.next();
@@ -238,12 +244,12 @@ public class ClientMenuState implements WarehouseState {
         String clientId = WarehouseContext.currentClientId;
 
         if (Warehouse.instance().getClientById(clientId).isEmpty()) {
-            System.out.println("\nClient not found");
+            System.out.println("Client not found");
             return;
         }
 
         while (true) {
-            System.out.print("\nPlease enter the product id: ");
+            System.out.print("Please enter the product id: ");
             String productId = Utilities.getUserInput();
             if (Warehouse.instance().getProductById(productId).isEmpty()) {
                 System.out.println("Product not found");
@@ -259,6 +265,7 @@ public class ClientMenuState implements WarehouseState {
 
             System.out.print("\nAdd another product? (y/n): ");
             String input = Utilities.getUserInput();
+            System.out.println();
             if (input.equalsIgnoreCase("n")) {
                 break;
             }
@@ -280,6 +287,7 @@ public class ClientMenuState implements WarehouseState {
 
         if (orderInfo.isEmpty()) {
             System.out.println("Wishlist is empty, exiting order");
+            prelimOrder.executeAll(); // there are no order actions, but there may be wishlist actions
             return;
         }
 

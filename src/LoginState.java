@@ -17,6 +17,7 @@ public class LoginState implements WarehouseState {
     private void becomeClient() {
         System.out.print("Enter client id: ");
         String clientId = Utilities.getUserInput();
+        System.out.println();
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (client.isEmpty()) {
@@ -65,7 +66,6 @@ public class LoginState implements WarehouseState {
 
     public void run() {
         while (WarehouseContext.isSystemRunning()) {
-            System.out.println();
             System.out.println("Login Menu: ");
             System.out.println("    1. Login as Client");
             System.out.println("    2. Login as Clerk");
@@ -75,7 +75,11 @@ public class LoginState implements WarehouseState {
 
             String input = Utilities.getUserInput();
             System.out.println();
-            executeOption(Integer.parseInt(input));
+            try {
+                executeOption(Integer.parseInt(input));
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input");
+            }
         }
     }
 }
