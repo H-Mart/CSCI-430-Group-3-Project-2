@@ -1,26 +1,27 @@
+import javax.swing.*;
+import java.util.Objects;
 import java.util.Optional;
 
 public class LoginState implements WarehouseState {
     private static LoginState instance;
 
-    private LoginState() {
+    JFrame frame;
+    AbstractButton clientButton, clerkButton, managerButton, exitButton;
 
+    private LoginState() {
+        frame = new JFrame();
     }
 
     public static LoginState instance() {
-        if (instance == null) {
-            instance = new LoginState();
-        }
-        return instance;
+        return Objects.requireNonNullElseGet(instance, () -> instance = new LoginState());
     }
 
     private void becomeClient() {
-        System.out.print("Enter client id: ");
-        String clientId = Utilities.getUserInput();
+        var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (client.isEmpty()) {
-            System.out.println("Client not found");
+            JOptionPane.showMessageDialog(frame, "Client not found", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -43,39 +44,34 @@ public class LoginState implements WarehouseState {
         WarehouseContext.instance().changeState(WarehouseContext.LOGIN);
     }
 
-    private void executeOption(int option) {
-        switch (option) {
-            case 1:
-                becomeClient();
-                break;
-            case 2:
-                becomeClerk();
-                break;
-            case 3:
-                becomeManager();
-                break;
-            case 0:
-                exit();
-                break;
-            default:
-                System.out.println("Invalid option");
-                break;
-        }
+    private void buildGUI() {
+        frame.setTitle("Login Menu");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 200);
+        frame.setLocationRelativeTo(null);
+
+        clientButton = new JButton("Client");
+        clerkButton = new JButton("Clerk");
+        managerButton = new JButton("Manager");
+        exitButton = new JButton("Exit");
+
+        clientButton.addActionListener(e -> becomeClient());
+        clerkButton.addActionListener(e -> becomeClerk());
+        managerButton.addActionListener(e -> becomeManager());
+        exitButton.addActionListener(e -> exit());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(clientButton);
+        buttonPanel.add(clerkButton);
+        buttonPanel.add(managerButton);
+        buttonPanel.add(exitButton);
+
+        frame.add(buttonPanel);
+        frame.setVisible(true);
     }
 
     public void run() {
-        while (WarehouseContext.isSystemRunning()) {
-            System.out.println();
-            System.out.println("Login Menu: ");
-            System.out.println("    1. Login as Client");
-            System.out.println("    2. Login as Clerk");
-            System.out.println("    3. Login as Manager");
-            System.out.println("    0. Exit");
-            System.out.print("> ");
-
-            String input = Utilities.getUserInput();
-            System.out.println();
-            executeOption(Integer.parseInt(input));
-        }
+        frame = WarehouseContext.instance().getFrame();
+        buildGUI();
     }
 }

@@ -1,3 +1,5 @@
+import javax.swing.*;
+import java.awt.*;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
@@ -5,69 +7,73 @@ import java.util.Optional;
 public class ClerkMenuState implements WarehouseState {
     private static ClerkMenuState instance;
 
-    private ClerkMenuState() {
+    JFrame frame;
+    AbstractButton addClientButton, printProductsButton, printClientsButton,
+            printClientsWithOutstandingBalanceButton, acceptPaymentButton, becomeClientButton, logoutButton;
+    JPanel mainPanel;
+    JPanel buttonPanel;
+    JPanel actionPanel;
 
+    private ClerkMenuState() {
+        mainPanel = new JPanel();
+        buttonPanel = new JPanel();
+        actionPanel = new JPanel();
+
+        mainPanel.setLayout(new GridLayout(1, 2, 10, 0));
+        buttonPanel.setLayout(new GridLayout(7, 1, 5, 5));
+        actionPanel.setLayout(new GridLayout(1, 1));
     }
 
     public static ClerkMenuState instance() {
         return Objects.requireNonNullElseGet(instance, () -> instance = new ClerkMenuState());
-
     }
 
-    private void executeOption(int option) {
-        switch (option) {
-            case 1:
-                addClient();
-                break;
-            case 2:
-                printProducts();
-                break;
-            case 3:
-                printClients();
-                break;
-            case 4:
-                printClientsWithOutstandingBalance();
-                break;
-            case 5:
-                acceptPayment();
-                break;
-            case 6:
-                becomeClient();
-                break;
-            case 0:
-                logout();
-                break;
-            default:
-                System.out.println("Invalid input");
-                break;
-        }
+    private void buildGUI() {
+        frame.setTitle("Clerk Menu");
+        addClientButton = new JButton("Add Client");
+        printProductsButton = new JButton("Print Products");
+        printClientsButton = new JButton("Print Clients");
+        printClientsWithOutstandingBalanceButton = new JButton("Print Clients with Outstanding Balance");
+        acceptPaymentButton = new JButton("Accept Payment");
+        becomeClientButton = new JButton("Become Client");
+        logoutButton = new JButton("Logout");
+
+        addClientButton.addActionListener(e -> addClient());
+        printProductsButton.addActionListener(e -> printProducts());
+        printClientsButton.addActionListener(e -> printClients());
+        printClientsWithOutstandingBalanceButton.addActionListener(e -> printClientsWithOutstandingBalance());
+        acceptPaymentButton.addActionListener(e -> acceptPayment());
+        becomeClientButton.addActionListener(e -> becomeClient());
+        logoutButton.addActionListener(e -> logout());
+
+        buttonPanel.add(addClientButton);
+        buttonPanel.add(printProductsButton);
+        buttonPanel.add(printClientsButton);
+        buttonPanel.add(printClientsWithOutstandingBalanceButton);
+        buttonPanel.add(acceptPaymentButton);
+        buttonPanel.add(becomeClientButton);
+        buttonPanel.add(logoutButton);
+
+        frame.add(mainPanel);
+        mainPanel.add(buttonPanel);
+        mainPanel.add(actionPanel);
+        frame.setVisible(true);
     }
 
     public void run() {
-        while (WarehouseContext.isSystemRunning()) {
-            System.out.println("Clerk Menu:");
-            System.out.println("    1. Add a Client");
-            System.out.println("    2. List Products");
-            System.out.println("    3. List Clients");
-            System.out.println("    4. List Clients with outstanding balance");
-            System.out.println("    5. Accept payment from a client");
-            System.out.println("    6. Login as Client");
-            System.out.println("    0. Exit");
-            System.out.print("> ");
-            String input = Utilities.getUserInput();
-
-            System.out.println();
-            executeOption(Integer.parseInt(input));
-        }
+        frame = WarehouseContext.instance().getFrame();
+        mainPanel.removeAll();
+        buttonPanel.removeAll();
+        actionPanel.removeAll();
+        buildGUI();
     }
 
     private void becomeClient() {
-        System.out.print("Enter client id: ");
-        String clientId = Utilities.getUserInput();
+        var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (client.isEmpty()) {
-            System.out.println("Client not found");
+            JOptionPane.showMessageDialog(frame, "Client not found", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 

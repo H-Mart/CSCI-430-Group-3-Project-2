@@ -1,8 +1,12 @@
+import javax.swing.*;
 import java.util.Objects;
 import java.util.Optional;
 
 public class ManagerMenuState implements WarehouseState {
     private static ManagerMenuState instance;
+
+    JFrame frame;
+    AbstractButton addProductButton, printWaitlistButton, acceptShipmentButton, clerkButton, logoutButton;
 
     private ManagerMenuState() {
     }
@@ -11,42 +15,34 @@ public class ManagerMenuState implements WarehouseState {
         return Objects.requireNonNullElseGet(instance, () -> instance = new ManagerMenuState());
     }
 
-    private void executeOption(int option) {
-        switch (option) {
-            case 1:
-                addProducts();
-                break;
-            case 2:
-                printWaitlist();
-                break;
-            case 3:
-                acceptShipment();
-                break;
-            case 4:
-                becomeClerk();
-                break;
-            case 0:
-                logout();
-                break;
-            default:
-                System.out.println("Invalid input");
-                break;
-        }
+    private void buildGUI() {
+        frame.setTitle("Manager Menu");
+        addProductButton = new JButton("Add Product");
+        printWaitlistButton = new JButton("Print Waitlist");
+        acceptShipmentButton = new JButton("Accept Shipment");
+        clerkButton = new JButton("Clerk");
+        logoutButton = new JButton("Logout");
+
+        addProductButton.addActionListener(e -> addProducts());
+        printWaitlistButton.addActionListener(e -> printWaitlist());
+        acceptShipmentButton.addActionListener(e -> acceptShipment());
+        clerkButton.addActionListener(e -> becomeClerk());
+        logoutButton.addActionListener(e -> logout());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(addProductButton);
+        buttonPanel.add(printWaitlistButton);
+        buttonPanel.add(acceptShipmentButton);
+        buttonPanel.add(clerkButton);
+        buttonPanel.add(logoutButton);
+
+        frame.add(buttonPanel);
+        frame.setVisible(true);
     }
 
     public void run() {
-        while (WarehouseContext.isSystemRunning()) {
-            System.out.println("Manager Menu:");
-            System.out.println("    1. Add a product");
-            System.out.println("    2. Display the waitlist for a product");
-            System.out.println("    3. Receive a shipment");
-            System.out.println("    4. Login as Clerk");
-            System.out.println("    0. Exit");
-            System.out.print("> ");
-            String input = Utilities.getUserInput();
-            System.out.println();
-            executeOption(Integer.parseInt(input));
-        }
+        frame = WarehouseContext.instance().getFrame();
+        buildGUI();
     }
 
     public void logout() {

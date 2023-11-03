@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
@@ -21,6 +22,8 @@ public class WarehouseContext {
     private final Deque<Integer> loginStack = new ArrayDeque<>();
 
     private static Boolean systemRunning = true;
+
+    private final JFrame frame = new JFrame();
 
     private WarehouseContext() {
         Warehouse.deserializeWarehouse();
@@ -63,7 +66,7 @@ public class WarehouseContext {
         } else if (currentState == EXIT) {
             terminate();
         }
-
+        frame.getContentPane().removeAll();
         states[currentState].run();
     }
 
@@ -79,6 +82,10 @@ public class WarehouseContext {
         System.exit(0);
     }
 
+    public JFrame getFrame() {
+        return frame;
+    }
+
     public void setLogin(int login) {
         loginStack.push(login);
     }
@@ -91,9 +98,9 @@ public class WarehouseContext {
         states[currentState].run();
     }
 
-    public static Boolean isSystemRunning() {
-        return systemRunning;
-    }
+//    public static Boolean isSystemRunning() {
+//        return systemRunning;
+//    }
 
     public static void main(String[] args) {
         WarehouseContext.instance().process();
