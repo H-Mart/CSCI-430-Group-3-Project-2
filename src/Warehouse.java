@@ -48,14 +48,16 @@ public class Warehouse implements Serializable {
      * @precondition a file named warehouse.ser exists and contains a serialized warehouse
      * @postcondition id servers and lists are restored to the state they were in when the warehouse was serialized
      */
-    public static void deserializeWarehouse() {
+    public static Boolean deserializeWarehouse() {
         try (var fileIn = new FileInputStream("warehouse.ser");
              var objectIn = new ObjectInputStream(fileIn)) {
             warehouse = (Warehouse) objectIn.readObject();
         } catch (IOException | ClassNotFoundException e) {
             //noinspection CallToPrintStackTrace
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
     /**

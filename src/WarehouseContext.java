@@ -1,3 +1,4 @@
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
@@ -23,8 +24,22 @@ public class WarehouseContext {
     private static Boolean systemRunning = true;
 
     private WarehouseContext() {
-        Warehouse.deserializeWarehouse();
+        var f = new File("warehouse.ser");
+        if (f.exists()) {
+            System.out.print("Load saved data? (y/n): ");
+            String input = Utilities.getUserInput();
 
+            if (input.equalsIgnoreCase("y")) {
+                if (Warehouse.deserializeWarehouse()) {
+                    System.out.println("The warehouse has been successfully loaded from the file warehouse.ser \n");
+                } else {
+                    System.out.println("There has been an error in loading \n");
+                }
+            }
+        }
+        else {
+            System.out.println("No saved data found \n");
+        }
         states = new WarehouseState[4];
         states[0] = LoginState.instance();
         states[1] = ClientMenuState.instance();
@@ -68,11 +83,17 @@ public class WarehouseContext {
     }
 
     private void terminate() {
-        if (Warehouse.serializeWarehouse()) {
-            System.out.println("The warehouse has been successfully saved in the file warehouse.ser \n");
-        } else {
-            System.out.println("There has been an error in saving \n");
+        System.out.println("Save data? (y/n): ");
+        String input = Utilities.getUserInput();
+
+        if (input.equalsIgnoreCase("y")) {
+            if (Warehouse.serializeWarehouse()) {
+                System.out.println("The warehouse has been successfully saved in the file warehouse.ser \n");
+            } else {
+                System.out.println("There has been an error in saving \n");
+            }
         }
+
         System.out.println("Goodbye \n ");
         systemRunning = false;
         System.exit(0);
