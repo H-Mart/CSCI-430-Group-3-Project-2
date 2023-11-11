@@ -58,6 +58,10 @@ public class Wishlist implements Serializable {
         return wishlist.iterator();
     }
 
+    public int size() {
+        return wishlist.size();
+    }
+
     /**
      * Searches the wishlist for a WishlistItem with the given id
      *

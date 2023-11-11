@@ -1,0 +1,18 @@
+ClientState
+    Change text on buttons - done
+    make cancel button on client login work - done
+    WishlistState
+        remove product from wishlist
+        change quantity of product in wishlist
+        order system
+
+ClerkState
+    change text on buttons - done
+    make add client work
+    ClientInfoState - done
+    print clients button shows products - done
+
+
+ManagerState
+    gui for adding products
+    gui for receiving shipment

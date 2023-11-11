@@ -1,14 +1,35 @@
+import GUI.ActionPanel;
+import GUI.ButtonPanel;
+import GUI.MainPanel;
+
 import javax.swing.*;
+import java.awt.*;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class ManagerMenuState implements WarehouseState {
     private static ManagerMenuState instance;
 
     JFrame frame;
-    AbstractButton addProductButton, printWaitlistButton, acceptShipmentButton, clerkButton, logoutButton;
+    AbstractButton addProductButton, acceptShipmentButton, clerkButton, logoutButton;
+
+    MainPanel mainPanel;
+    ButtonPanel buttonPanel;
+    ActionPanel actionPanel;
 
     private ManagerMenuState() {
+        mainPanel = new MainPanel();
+        buttonPanel = new ButtonPanel();
+        actionPanel = new ActionPanel();
+
+        setDefaultLayout();
+    }
+
+    private void setDefaultLayout() {
+        mainPanel.setLayout(new GridLayout(1, 2));
+        buttonPanel.setLayout(new GridLayout(4, 1, 5, 5));
+        actionPanel.setLayout(new GridLayout(1, 1));
     }
 
     public static ManagerMenuState instance() {
@@ -17,31 +38,40 @@ public class ManagerMenuState implements WarehouseState {
 
     private void buildGUI() {
         frame.setTitle("Manager Menu");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 400);
+        frame.setLocationRelativeTo(null);
+
         addProductButton = new JButton("Add Product");
-        printWaitlistButton = new JButton("Print Waitlist");
         acceptShipmentButton = new JButton("Accept Shipment");
         clerkButton = new JButton("Clerk");
         logoutButton = new JButton("Logout");
 
-        addProductButton.addActionListener(e -> addProducts());
-        printWaitlistButton.addActionListener(e -> printWaitlist());
+        addProductButton.addActionListener(e -> addProduct());
         acceptShipmentButton.addActionListener(e -> acceptShipment());
         clerkButton.addActionListener(e -> becomeClerk());
         logoutButton.addActionListener(e -> logout());
 
-        JPanel buttonPanel = new JPanel();
         buttonPanel.add(addProductButton);
-        buttonPanel.add(printWaitlistButton);
         buttonPanel.add(acceptShipmentButton);
         buttonPanel.add(clerkButton);
         buttonPanel.add(logoutButton);
 
-        frame.add(buttonPanel);
+        frame.add(mainPanel);
+        mainPanel.add(buttonPanel);
+        mainPanel.add(actionPanel);
         frame.setVisible(true);
     }
 
     public void run() {
         frame = WarehouseContext.instance().getFrame();
+        frame.getContentPane().removeAll();
+        frame.revalidate();
+        frame.repaint();
+
+        mainPanel.clear();
+        buttonPanel.clear();
+        actionPanel.clear();
         buildGUI();
     }
 
@@ -54,40 +84,56 @@ public class ManagerMenuState implements WarehouseState {
         WarehouseContext.instance().changeState(WarehouseContext.CLERK);
     }
 
-    /**
-     * @precondition none
-     * @postcondition a new product is added to the ordering system and printed if successful
-     */
-    private static void addProduct() {
-        System.out.print("Enter product name: ");
-        String name = Utilities.getUserInput();
+    public void addProduct() {
+        var name = getValidInput("Enter product name: ", "Product name cannot be empty",
+                s -> !s.isEmpty());
+        if (name == null) {
+            return;
+        }
 
-        System.out.print("\nEnter product price: ");
-        double price = Double.parseDouble(Utilities.getUserInput());
+        var price = getValidInput("Enter product price: ", "Invalid Price",
+                (input) -> {
+                    try {
+                        var p = Double.parseDouble(input);
+                        return (p >= 0);
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                });
+        if (price == null) {
+            return;
+        }
 
-        System.out.print("\nEnter product quantity: ");
-        int quantity = Integer.parseInt(Utilities.getUserInput());
+        var quantity = getValidInput("Enter product quantity: ", "Invalid Quantity",
+                (input) -> {
+                    try {
+                        var q = Integer.parseInt(input);
+                        return (q >= 0);
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                });
+        if (quantity == null) {
+            return;
+        }
 
-        String addedId = Warehouse.instance().addProduct(name, price, quantity);
+        var addedId = Warehouse.instance().addProduct(name, Double.parseDouble(price), Integer.parseInt(quantity));
 
         if (Warehouse.instance().getProductById(addedId).isPresent()) {
-            System.out.println("\nProduct added - " + Warehouse.instance().getProductById(addedId).get());
+            JOptionPane.showMessageDialog(frame, "Product added - " + Warehouse.instance().getProductById(addedId).get());
         } else {
-            System.out.println("\nProduct not added");
+            JOptionPane.showMessageDialog(frame, "Product not added", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * @precondition none
-     * @postcondition multiple products are added to the ordering system
-     */
-    public static void addProducts() {
+    private String getValidInput(String message, String errorMessage, Predicate<String> validator) {
         while (true) {
-            addProduct();
-            System.out.print("\nAdd another product? (y/n): ");
-            String input = Utilities.getUserInput();
-            if (input.equalsIgnoreCase("n")) {
-                break;
+            String input = JOptionPane.showInputDialog(frame, message);
+            if (input == null || !validator.test(input)) {
+                if (input == null) return null;
+                JOptionPane.showMessageDialog(frame, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                return input;
             }
         }
     }
@@ -102,6 +148,7 @@ public class ManagerMenuState implements WarehouseState {
             System.out.println("Product not found");
             return;
         }
+
         System.out.println("Waitlist for " + product.get().getName() + ": ");
 
         var waitlistIterator = product.get().getWaitlist().getIterator();
@@ -110,6 +157,7 @@ public class ManagerMenuState implements WarehouseState {
             System.out.println("\nWaitlist is empty");
             return;
         }
+
         while (waitlistIterator.hasNext()) {
             var waitlistItem = waitlistIterator.next();
             System.out.println("\tWaitlisted by: " + waitlistItem.getClientId());

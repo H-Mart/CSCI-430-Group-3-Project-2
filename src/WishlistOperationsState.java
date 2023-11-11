@@ -3,23 +3,25 @@ import GUI.ButtonPanel;
 import GUI.MainPanel;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ClientMenuState implements WarehouseState {
-    private static ClientMenuState instance;
+public class WishlistOperationsState implements WarehouseState {
+    private static WishlistOperationsState instance;
 
     JFrame frame;
-    AbstractButton showDetailsButton, showProductsButton, showClientOrderHistoryButton,
-            switchToWishlistOperationsButton, showClientWishlistButton, logoutButton;
+    AbstractButton viewWishlistButton, addProductsToWishlistButton, removeProductsFromWishlistButton,
+            changeQuantityOfProductsInWishlistButton, orderProductsInWishlistButton, exitButton;
     MainPanel mainPanel;
     ButtonPanel buttonPanel;
     ActionPanel actionPanel;
 
-    private ClientMenuState() {
+    private WishlistOperationsState() {
         mainPanel = new MainPanel();
         buttonPanel = new ButtonPanel();
         actionPanel = new ActionPanel();
@@ -33,148 +35,59 @@ public class ClientMenuState implements WarehouseState {
         actionPanel.setLayout(new GridLayout(1, 1));
     }
 
-    public static ClientMenuState instance() {
-        return Objects.requireNonNullElseGet(instance, () -> instance = new ClientMenuState());
+    public static WishlistOperationsState instance() {
+        return Objects.requireNonNullElseGet(instance, () -> instance = new WishlistOperationsState());
     }
 
     private void buildGUI() {
-        frame.setTitle("Client Menu - Logged in with ID: " + WarehouseContext.currentClientId);
+        frame.setTitle("Client Menu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(800, 400);
         frame.setLocationRelativeTo(null);
 
-        showDetailsButton = new JButton("Show Client Details");
-        showProductsButton = new JButton("Show Product List");
-        showClientOrderHistoryButton = new JButton("Show Client Order History");
-        showClientWishlistButton = new JButton("Show Client Wishlist");
-        switchToWishlistOperationsButton = new JButton("Wishlist Operations");
-        logoutButton = new JButton("Logout");
+        viewWishlistButton = new JButton("View Wishlist");
+        addProductsToWishlistButton = new JButton("Add Products to Wishlist");
+        removeProductsFromWishlistButton = new JButton("Remove Products from Wishlist");
+        changeQuantityOfProductsInWishlistButton = new JButton("Change Quantity of Products in Wishlist");
+        orderProductsInWishlistButton = new JButton("Order Products in Wishlist");
+        exitButton = new JButton("Exit");
 
-        showDetailsButton.addActionListener(e -> displayDetails());
-        showProductsButton.addActionListener(e -> displayProducts());
-        showClientOrderHistoryButton.addActionListener(e -> displayClientOrderHistory());
-        showClientWishlistButton.addActionListener(e -> displayClientWishlist());
-        switchToWishlistOperationsButton.addActionListener(e -> switchToWishlistOperations());
-        logoutButton.addActionListener(e -> logout());
+        viewWishlistButton.addActionListener(e -> displayClientWishlist());
+        addProductsToWishlistButton.addActionListener(e -> addProductsToClientWishlist());
+        removeProductsFromWishlistButton.addActionListener(e -> removeProductsFromClientWishlist());
+        orderProductsInWishlistButton.addActionListener(e -> startOrder());
+        exitButton.addActionListener(e -> exit());
 
-        buttonPanel.add(showDetailsButton);
-        buttonPanel.add(showProductsButton);
-        buttonPanel.add(showClientOrderHistoryButton);
-        buttonPanel.add(showClientWishlistButton);
-        buttonPanel.add(switchToWishlistOperationsButton);
-        buttonPanel.add(logoutButton);
+        buttonPanel.add(viewWishlistButton);
+        buttonPanel.add(addProductsToWishlistButton);
+        buttonPanel.add(removeProductsFromWishlistButton);
+        buttonPanel.add(changeQuantityOfProductsInWishlistButton);
+        buttonPanel.add(orderProductsInWishlistButton);
+        buttonPanel.add(exitButton);
 
-        frame.add(mainPanel);
         mainPanel.add(buttonPanel);
         mainPanel.add(actionPanel);
+
+        frame.add(mainPanel);
+        frame.pack();
         frame.setVisible(true);
     }
 
     public void run() {
         frame = WarehouseContext.instance().getFrame();
-        frame.getContentPane().removeAll();
         mainPanel.removeAll();
         buttonPanel.removeAll();
         actionPanel.removeAll();
-
-        frame.revalidate();
-        frame.repaint();
         buildGUI();
     }
 
-    public void logout() {
-        WarehouseContext.instance().changeState(WarehouseContext.LOGIN);
+    public void exit() {
+        WarehouseContext.instance().changeState(WarehouseContext.CLIENT);
     }
 
-    public void switchToWishlistOperations() {
-        WarehouseContext.instance().changeState(WarehouseContext.WISHLIST);
-    }
-
-    private void displayDetails() {
-        setDefaultLayout();
-        // displays the client details on the action panel
-        String clientId = WarehouseContext.currentClientId;
-        Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
-
-        var clientDetails = new JTextArea();
-        clientDetails.setEditable(false);
-        clientDetails.setText("Client ID: " + client.getId() + "\nClient Name: " + client.getName()
-                + "\nClient Address: " + client.getAddress() + "\nClient Balance: " + client.getBalance());
-        clientDetails.setLineWrap(true);
-        clientDetails.setWrapStyleWord(true);
-
-        var scrollPane = new JScrollPane(clientDetails);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        actionPanel.clear();
-        actionPanel.add(scrollPane);
-    }
-
-    private void displayProducts() {
-        setDefaultLayout();
-        // displays the products on the action panel
-        var productIterator = Warehouse.instance().getProductIterator();
-        var productDetails = new JTextArea();
-        productDetails.setEditable(false);
-        while (productIterator.hasNext()) {
-            var product = productIterator.next();
-            productDetails.append("Product ID: " + product.getId() + "\nProduct Name: " + product.getName()
-                    + "\nProduct Price: " + product.getPrice() + "\nProduct Quantity: " + product.getQuantity() + "\n\n");
-        }
-        productDetails.setLineWrap(true);
-        productDetails.setWrapStyleWord(true);
-
-        var scrollPane = new JScrollPane(productDetails);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setPreferredSize(new Dimension(250, 250));
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        actionPanel.clear();
-        actionPanel.add(scrollPane);
-    }
-
-    private void displayClientOrderHistory() {
-        setDefaultLayout();
-        // displays the client order history on the action panel
-        String clientId = WarehouseContext.currentClientId;
-
-        Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
-
-        var clientTransactionIterator = client.getTransactionList().getIterator();
-        if (!clientTransactionIterator.hasNext()) {
-            System.out.println("\nOrder history is empty");
-            return;
-        }
-
-        var clientOrderHistory = new JTextArea();
-        clientOrderHistory.setEditable(false);
-
-        while (clientTransactionIterator.hasNext()) {
-            var transactionRecord = clientTransactionIterator.next();
-            clientOrderHistory.append("Date: " + transactionRecord.getDate() + "\nDescription: " + transactionRecord.getDescription()
-                    + "\nTotal Price: " + transactionRecord.getTotalCost() + "\n\n");
-            var invoiceIterator = transactionRecord.getInvoice().getIterator();
-            clientOrderHistory.append("Invoice: \n");
-            while (invoiceIterator.hasNext()) {
-                var invoiceItem = invoiceIterator.next();
-                clientOrderHistory.append("\tProduct ID: " + invoiceItem.getProductId() + "\n\tQuantity: " + invoiceItem.getQuantity()
-                        + "\n\tPrice: " + invoiceItem.getPrice() + "\n\n");
-            }
-        }
-
-        clientOrderHistory.setLineWrap(true);
-        clientOrderHistory.setWrapStyleWord(true);
-
-        var scrollPane = new JScrollPane(clientOrderHistory);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setPreferredSize(new Dimension(250, 250));
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        actionPanel.removeAll();
-        actionPanel.add(scrollPane);
-        actionPanel.revalidate();
-        actionPanel.repaint();
+    private void startOrder() {
+        new OrderDialog(frame);
+        System.out.println("hi");
     }
 
     private void displayClientWishlist() {
@@ -210,16 +123,163 @@ public class ClientMenuState implements WarehouseState {
 
         var scrollPane = new JScrollPane(clientWishlist);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+//        scrollPane.setPreferredSize(new Dimension(250, 250));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        actionPanel.clear();
+        actionPanel.add(scrollPane);
+    }
+
+    /**
+     * Changes the action panel to be an input form that allows the user to input a product and quantity to add to the client's wishlist
+     * when the submit button is pressed, the product is added to the client's wishlist and the form is cleared
+     * when the clear button is pressed, the form is cleared
+     * uses a formatted text field for the input
+     *
+     * @precondition none
+     * @postcondition if the client and product(s) exist,
+     * the product(s) is/are added to the client's wishlist as a WishlistItem
+     */
+    public void addProductsToClientWishlist() {
+        setDefaultLayout();
+        String clientId = WarehouseContext.currentClientId;
+        Optional<Client> client = Warehouse.instance().getClientById(clientId);
+        if (client.isEmpty()) {
+            System.out.println("Client not found");
+            return;
+        }
+
+
+        var productIdLabel = new JLabel("Product ID: ");
+        var productIdField = new JTextField();
+        var productInfoLabel = new JLabel("Product Info: ");
+        var productInfoField = new JTextArea();
+        var quantityLabel = new JLabel("Quantity: ");
+        var quantityField = new JTextField();
+        var submitButton = new JButton("Submit");
+        var clearButton = new JButton("Clear");
+
+        // add document listener to productIdField to update productInfoField when productIdField is changed
+        productIdField.getDocument().addDocumentListener(new DocumentListener() {
+            private void updateOutput(DocumentEvent e) {
+                String productId = productIdField.getText();
+                Optional<Product> product = Warehouse.instance().getProductById(productId);
+
+                if (product.isEmpty()) {
+                    productInfoField.setText("Product not found");
+                    return;
+                }
+
+                productInfoField.setText("Product Name: " + product.get().getName() + "\nProduct Price: " + product.get().getPrice()
+                        + "\nProduct Quantity: " + product.get().getQuantity());
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+        });
+
+        submitButton.addActionListener(e -> {
+            String productId = productIdField.getText();
+            String quantity = quantityField.getText();
+
+            if (productId.isEmpty() || quantity.isEmpty()) {
+                System.out.println("Please fill out all fields");
+                return;
+            }
+
+            Optional<Product> product = Warehouse.instance().getProductById(productId);
+            if (product.isEmpty()) {
+                System.out.println("Product not found");
+                return;
+            }
+
+            int quantityInt = Integer.parseInt(quantity);
+            if (quantityInt <= 0) {
+                System.out.println("Quantity must be positive");
+                return;
+            }
+
+            client.get().addToWishlist(productId, quantityInt);
+            System.out.println("Product added to wishlist");
+            productIdField.setText("");
+            quantityField.setText("");
+        });
+
+        clearButton.addActionListener(e -> {
+            productIdField.setText("");
+            quantityField.setText("");
+        });
+
+        actionPanel.setLayout(new GridLayout(6, 2, 5, 5));
+
+        actionPanel.clear();
+
+        actionPanel.add(productIdLabel);
+        actionPanel.add(productIdField);
+        actionPanel.add(productInfoLabel); // Placeholder for grid alignment
+        actionPanel.add(productInfoField);
+        actionPanel.add(quantityLabel);
+        actionPanel.add(quantityField);
+
+        // Add buttons in their own row, spanning two columns
+        actionPanel.add(submitButton);
+        actionPanel.add(clearButton);
+    }
+
+    private void removeProductsFromClientWishlist() {
+        setDefaultLayout();
+        String clientId = WarehouseContext.currentClientId;
+        Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
+
+        var wishlistSize = client.getWishlist().size();
+
+        var itemPanel = new JPanel();
+        itemPanel.setLayout(new GridLayout(wishlistSize, 2, 5, 5));
+
+        var clientWishlistIterator = client.getWishlist().getIterator();
+        while (clientWishlistIterator.hasNext()) {
+            var wishlistItem = clientWishlistIterator.next();
+            Product product = Warehouse.instance().getProductById(wishlistItem.getProductId()).orElseThrow();
+
+            var productInfoArea = new JTextArea("Product ID: " + wishlistItem.getProductId() + "\nProduct Name: "
+                    + product.getName()
+                    + "\nWishlist Quantity: " + wishlistItem.getQuantity());
+            productInfoArea.setEditable(false);
+            var productCheckBox = new JCheckBox("Remove");
+            itemPanel.add(productInfoArea);
+            itemPanel.add(productCheckBox);
+        }
+
+        var scrollPane = new JScrollPane(itemPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setPreferredSize(new Dimension(250, 250));
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        actionPanel.removeAll();
+        var submitButton = new JButton("Submit");
+        submitButton.addActionListener(e -> {
+            // todo add removal action
+            System.out.println("Remove button pressed");
+        });
+
+        actionPanel.clear();
+
         actionPanel.add(scrollPane);
-        actionPanel.revalidate();
-        actionPanel.repaint();
+        actionPanel.add(submitButton);
     }
 
-    private static void startOrder() {
+    private static void startOrder2() {
         String clientId = WarehouseContext.currentClientId;
 
         if (Warehouse.instance().getClientById(clientId).isEmpty()) {
@@ -350,4 +410,6 @@ public class ClientMenuState implements WarehouseState {
         }
         return orderItemInfo;
     }
+
+
 }

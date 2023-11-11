@@ -20,7 +20,9 @@ public class LoginState implements WarehouseState {
         var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
-        if (client.isEmpty()) {
+        if (clientId == null) {
+            return;
+        } else if (client.isEmpty()) {
             JOptionPane.showMessageDialog(frame, "Client not found", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -47,7 +49,7 @@ public class LoginState implements WarehouseState {
     private void buildGUI() {
         frame.setTitle("Login Menu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 200);
+        frame.setSize(200, 400);
         frame.setLocationRelativeTo(null);
 
         clientButton = new JButton("Client");
@@ -68,6 +70,7 @@ public class LoginState implements WarehouseState {
 
         frame.add(buttonPanel);
         frame.setVisible(true);
+        frame.pack();
     }
 
     public void run() {
