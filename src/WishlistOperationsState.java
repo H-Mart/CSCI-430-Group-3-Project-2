@@ -30,7 +30,6 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     private void setDefaultLayout() {
-        mainPanel.setLayout(new GridLayout(1, 2));
         buttonPanel.setLayout(new GridLayout(6, 1, 5, 5));
         actionPanel.setLayout(new GridLayout(1, 1));
     }
@@ -42,7 +41,7 @@ public class WishlistOperationsState implements WarehouseState {
     private void buildGUI() {
         frame.setTitle("Client Menu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 400);
+        frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
         viewWishlistButton = new JButton("View Wishlist");
@@ -50,11 +49,12 @@ public class WishlistOperationsState implements WarehouseState {
         removeProductsFromWishlistButton = new JButton("Remove Products from Wishlist");
         changeQuantityOfProductsInWishlistButton = new JButton("Change Quantity of Products in Wishlist");
         orderProductsInWishlistButton = new JButton("Order Products in Wishlist");
-        exitButton = new JButton("Exit");
+        exitButton = new JButton("Go Back");
 
         viewWishlistButton.addActionListener(e -> displayClientWishlist());
         addProductsToWishlistButton.addActionListener(e -> addProductsToClientWishlist());
         removeProductsFromWishlistButton.addActionListener(e -> removeProductsFromClientWishlist());
+        changeQuantityOfProductsInWishlistButton.addActionListener(e -> changeQuantityOfProductsInWishlist());
         orderProductsInWishlistButton.addActionListener(e -> startOrder());
         exitButton.addActionListener(e -> exit());
 
@@ -65,19 +65,18 @@ public class WishlistOperationsState implements WarehouseState {
         buttonPanel.add(orderProductsInWishlistButton);
         buttonPanel.add(exitButton);
 
-        mainPanel.add(buttonPanel);
-        mainPanel.add(actionPanel);
+        mainPanel.addButtonPanel(buttonPanel);
+        mainPanel.addActionPanel(actionPanel);
 
         frame.add(mainPanel);
-        frame.pack();
         frame.setVisible(true);
     }
 
     public void run() {
         frame = WarehouseContext.instance().getFrame();
-        mainPanel.removeAll();
-        buttonPanel.removeAll();
-        actionPanel.removeAll();
+        mainPanel.clear();
+        buttonPanel.clear();
+        actionPanel.clear();
         buildGUI();
     }
 
@@ -86,8 +85,57 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     private void startOrder() {
-        new OrderDialog(frame);
-        System.out.println("hi");
+        String clientId = WarehouseContext.currentClientId;
+        Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
+
+        var wishlistSize = client.getWishlist().size();
+
+        var layout = new GroupLayout(actionPanel);
+        actionPanel.setLayout(layout);
+
+        var itemPanel = getOrderedItemPanel(wishlistSize, client);
+
+        var scrollPane = new JScrollPane(itemPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        var submitButton = new JButton("Submit");
+//        submitButton.addActionListener(e -> {
+//            for (var component : itemPanel.getComponents()) {
+//                if (component instanceof OrderQuantityPanel) {
+//                    ((OrderQuantityPanel) component).getWishlistItem().setQuantity(
+//                            ((OrderQuantityPanel) component).getQuantity());
+//                }
+//            }
+//        });
+
+        var resetButton = new JButton("Reset");
+
+        actionPanel.clear();
+
+        layout.setHorizontalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap(126, Short.MAX_VALUE)
+                                .addComponent(submitButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(resetButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+
+        layout.setVerticalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE,
+                                        GroupLayout.DEFAULT_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(submitButton)
+                                        .addComponent(resetButton))
+                                .addContainerGap(12, Short.MAX_VALUE))
+        );
     }
 
     private void displayClientWishlist() {
@@ -131,7 +179,8 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     /**
-     * Changes the action panel to be an input form that allows the user to input a product and quantity to add to the client's wishlist
+     * Changes the action panel to be an input form that allows the user to input a product and quantity to add to
+     * the client's wishlist
      * when the submit button is pressed, the product is added to the client's wishlist and the form is cleared
      * when the clear button is pressed, the form is cleared
      * uses a formatted text field for the input
@@ -141,14 +190,14 @@ public class WishlistOperationsState implements WarehouseState {
      * the product(s) is/are added to the client's wishlist as a WishlistItem
      */
     public void addProductsToClientWishlist() {
-        setDefaultLayout();
+//        setDefaultLayout();
         String clientId = WarehouseContext.currentClientId;
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
+        // todo make this an error debug message
         if (client.isEmpty()) {
             System.out.println("Client not found");
             return;
         }
-
 
         var productIdLabel = new JLabel("Product ID: ");
         var productIdField = new JTextField();
@@ -159,6 +208,9 @@ public class WishlistOperationsState implements WarehouseState {
         var submitButton = new JButton("Submit");
         var clearButton = new JButton("Clear");
 
+        // disable submit button and quantity field until productIdField is filled with a valid product id
+        submitButton.setEnabled(false);
+        quantityField.setEnabled(false);
         // add document listener to productIdField to update productInfoField when productIdField is changed
         productIdField.getDocument().addDocumentListener(new DocumentListener() {
             private void updateOutput(DocumentEvent e) {
@@ -167,7 +219,12 @@ public class WishlistOperationsState implements WarehouseState {
 
                 if (product.isEmpty()) {
                     productInfoField.setText("Product not found");
+                    submitButton.setEnabled(false);
+                    quantityField.setEnabled(false);
                     return;
+                } else {
+                    submitButton.setEnabled(validQuantity(quantityField.getText()));
+                    quantityField.setEnabled(true);
                 }
 
                 productInfoField.setText("Product Name: " + product.get().getName() + "\nProduct Price: " + product.get().getPrice()
@@ -190,24 +247,41 @@ public class WishlistOperationsState implements WarehouseState {
             }
         });
 
+        quantityField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                submitButton.setEnabled(validQuantity(quantityField.getText()));
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                submitButton.setEnabled(validQuantity(quantityField.getText()));
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                submitButton.setEnabled(validQuantity(quantityField.getText()));
+            }
+        });
+
         submitButton.addActionListener(e -> {
             String productId = productIdField.getText();
             String quantity = quantityField.getText();
 
             if (productId.isEmpty() || quantity.isEmpty()) {
-                System.out.println("Please fill out all fields");
+                JOptionPane.showMessageDialog(frame, "Please fill out all fields", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             Optional<Product> product = Warehouse.instance().getProductById(productId);
             if (product.isEmpty()) {
-                System.out.println("Product not found");
+                JOptionPane.showMessageDialog(frame, "Product not found", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             int quantityInt = Integer.parseInt(quantity);
             if (quantityInt <= 0) {
-                System.out.println("Quantity must be positive");
+                JOptionPane.showMessageDialog(frame, "Quantity must be positive", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -239,44 +313,208 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     private void removeProductsFromClientWishlist() {
-        setDefaultLayout();
+        String clientId = WarehouseContext.currentClientId;
+        Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
+
+        var layout = new GroupLayout(actionPanel);
+        actionPanel.setLayout(layout);
+
+        var itemPanel = new JPanel();
+
+        setRemoveWishlistItemPanel(itemPanel, client.getWishlist().size(), client);
+
+        var scrollPane = new JScrollPane(itemPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        var submitButton = new JButton("Submit");
+        submitButton.addActionListener(e -> {
+            for (var component : itemPanel.getComponents()) {
+                if (component instanceof RemoveWishlistItemPanel) {
+                    if (((RemoveWishlistItemPanel) component).getRemove()) {
+                        client.removeFromWishlist(((RemoveWishlistItemPanel) component).getWishlistItem().getProductId());
+                    }
+                    ((RemoveWishlistItemPanel) component).reset();
+                }
+            }
+            itemPanel.removeAll();
+            setRemoveWishlistItemPanel(itemPanel, client.getWishlist().size(), client);
+            itemPanel.revalidate();
+            itemPanel.repaint();
+        });
+
+        var resetButton = new JButton("Reset");
+        resetButton.addActionListener(e -> {
+            for (var component : itemPanel.getComponents()) {
+                if (component instanceof RemoveWishlistItemPanel) {
+                    ((RemoveWishlistItemPanel) component).reset();
+                }
+            }
+        });
+
+        actionPanel.clear();
+
+        layout.setHorizontalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap(126, Short.MAX_VALUE)
+                                .addComponent(submitButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(resetButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+
+        layout.setVerticalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE,
+                                        GroupLayout.DEFAULT_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(submitButton)
+                                        .addComponent(resetButton))
+                                .addContainerGap(12, Short.MAX_VALUE))
+        );
+    }
+
+    private boolean validQuantity(String quantity) {
+        if (quantity.isEmpty()) {
+            return false;
+        }
+
+        int quantityInt;
+        try {
+            quantityInt = Integer.parseInt(quantity);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+
+        return quantityInt > 0;
+    }
+
+    private void changeQuantityOfProductsInWishlist() {
         String clientId = WarehouseContext.currentClientId;
         Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
 
         var wishlistSize = client.getWishlist().size();
 
+        var layout = new GroupLayout(actionPanel);
+        actionPanel.setLayout(layout);
+
+        var itemPanel = getChangeQuantityPanel(wishlistSize, client);
+
+        var scrollPane = new JScrollPane(itemPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        var submitButton = new JButton("Submit");
+        submitButton.addActionListener(e -> {
+            for (var component : itemPanel.getComponents()) {
+                if (component instanceof WishlistQuantityPanel) {
+                    ((WishlistQuantityPanel) component).getWishlistItem().setQuantity(
+                            ((WishlistQuantityPanel) component).getQuantity());
+                    ((WishlistQuantityPanel) component).reset();
+                }
+            }
+            JOptionPane.showMessageDialog(frame, "Quantities updated");
+        });
+
+        var resetButton = new JButton("Reset");
+        resetButton.addActionListener(e -> {
+            for (var component : itemPanel.getComponents()) {
+                if (component instanceof WishlistQuantityPanel) {
+                    ((WishlistQuantityPanel) component).reset();
+                }
+            }
+        });
+
+        actionPanel.clear();
+
+        layout.setHorizontalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap(126, Short.MAX_VALUE)
+                                .addComponent(submitButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(resetButton, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+
+        layout.setVerticalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE,
+                                        GroupLayout.DEFAULT_SIZE)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(submitButton)
+                                        .addComponent(resetButton))
+                                .addContainerGap(12, Short.MAX_VALUE))
+        );
+    }
+
+    private JPanel getOrderedItemPanel(int wishlistSize, Client client) {
+        return getOrderedItemPanel(wishlistSize, client, new ArrayList<OrderItemInfo>());
+    }
+
+
+    private JPanel getOrderedItemPanel(int wishlistSize, Client client, List<OrderItemInfo> additionalOrders) {
         var itemPanel = new JPanel();
-        itemPanel.setLayout(new GridLayout(wishlistSize, 2, 5, 5));
+        itemPanel.setLayout(new GridLayout(wishlistSize, 1, 5, 5));
 
         var clientWishlistIterator = client.getWishlist().getIterator();
         while (clientWishlistIterator.hasNext()) {
             var wishlistItem = clientWishlistIterator.next();
             Product product = Warehouse.instance().getProductById(wishlistItem.getProductId()).orElseThrow();
 
-            var productInfoArea = new JTextArea("Product ID: " + wishlistItem.getProductId() + "\nProduct Name: "
-                    + product.getName()
-                    + "\nWishlist Quantity: " + wishlistItem.getQuantity());
-            productInfoArea.setEditable(false);
-            var productCheckBox = new JCheckBox("Remove");
-            itemPanel.add(productInfoArea);
-            itemPanel.add(productCheckBox);
+            var wishlistQuantityPanel = new OrderQuantityPanel(
+                    new OrderItemInfo(wishlistItem.getProductId(), wishlistItem.getQuantity(), product.getPrice())
+            );
+
+            itemPanel.add(wishlistQuantityPanel);
         }
 
-        var scrollPane = new JScrollPane(itemPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setPreferredSize(new Dimension(250, 250));
-        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        for (var orderItem : additionalOrders) {
+            var orderQuantityPanel = new OrderQuantityPanel(orderItem);
+            itemPanel.add(orderQuantityPanel);
+        }
 
-        var submitButton = new JButton("Submit");
-        submitButton.addActionListener(e -> {
-            // todo add removal action
-            System.out.println("Remove button pressed");
-        });
+        return itemPanel;
+    }
 
-        actionPanel.clear();
+    private static JPanel getChangeQuantityPanel(int wishlistSize, Client client) {
+        var itemPanel = new JPanel();
+        itemPanel.setLayout(new GridLayout(wishlistSize, 1, 5, 5));
 
-        actionPanel.add(scrollPane);
-        actionPanel.add(submitButton);
+        var clientWishlistIterator = client.getWishlist().getIterator();
+        while (clientWishlistIterator.hasNext()) {
+            var wishlistItem = clientWishlistIterator.next();
+            var wishlistQuantityPanel = new WishlistQuantityPanel(wishlistItem);
+
+            itemPanel.add(wishlistQuantityPanel);
+        }
+        return itemPanel;
+    }
+
+    private void setRemoveWishlistItemPanel(JPanel itemPanel, int wishlistSize, Client client) {
+//        var itemPanel = new JPanel();
+        itemPanel.removeAll();
+        itemPanel.setLayout(new GridLayout(wishlistSize, 1, 5, 5));
+
+        var clientWishlistIterator = client.getWishlist().getIterator();
+        while (clientWishlistIterator.hasNext()) {
+            var wishlistItem = clientWishlistIterator.next();
+            var removeWishlistItemPanel = new RemoveWishlistItemPanel(wishlistItem);
+
+            itemPanel.add(removeWishlistItemPanel);
+        }
+        itemPanel.revalidate();
+        itemPanel.repaint();
+//        return itemPanel;
     }
 
     private static void startOrder2() {
@@ -301,7 +539,8 @@ public class WishlistOperationsState implements WarehouseState {
         int itemNumber = 1;
         for (var orderItem : orderInfo) {
             var productOrdered = Warehouse.instance().getProductById(orderItem.getProductId()).orElseThrow();
-            System.out.printf("%d - Product Name: %s, Quantity: %d, Price: %.2f\n", itemNumber++, productOrdered.getName(), orderItem.getQuantity(),
+            System.out.printf("%d - Product Name: %s, Quantity: %d, Price: %.2f\n", itemNumber++,
+                    productOrdered.getName(), orderItem.getQuantity(),
                     orderItem.getPrice());
             totalPrice += orderItem.getPrice() * orderItem.getQuantity();
         }
@@ -362,7 +601,8 @@ public class WishlistOperationsState implements WarehouseState {
 
                     if (product.get().getQuantity() < wishlistItem.getQuantity()) {
                         System.out.println("Order quantity exceeds product quantity. " +
-                                (wishlistItem.getQuantity() - product.get().getQuantity()) + " will be added to product waitlist.");
+                                (wishlistItem.getQuantity() - product.get().getQuantity()) + " will be added to " +
+                                "product waitlist.");
                     }
                     break;
                 case "3": // add different amount to order
@@ -410,6 +650,4 @@ public class WishlistOperationsState implements WarehouseState {
         }
         return orderItemInfo;
     }
-
-
 }

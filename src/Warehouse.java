@@ -190,7 +190,6 @@ public class Warehouse implements Serializable {
         Product product = Warehouse.instance().getProductById(productId).orElseThrow();
         WaitlistItem waitlistItem = product.getWaitlistItem(waitlistItemId).orElseThrow();
 
-        // todo add prints to show what's happening
         int waitlistQuantityDeficit = 0;
         if (orderQuantity <= product.getQuantity()) {
             orderItemInfo = new OrderItemInfo(product.getId(), orderQuantity, product.getPrice());

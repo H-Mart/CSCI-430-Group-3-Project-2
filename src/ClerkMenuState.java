@@ -3,6 +3,8 @@ import GUI.ButtonPanel;
 import GUI.MainPanel;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.Objects;
 import java.util.Optional;
@@ -12,7 +14,8 @@ public class ClerkMenuState implements WarehouseState {
 
     JFrame frame;
     AbstractButton addClientButton, showProductsButton,
-            switchToClientQueryButton, acceptPaymentButton, becomeClientButton, logoutButton;
+            switchToClientQueryButton, acceptPaymentButton,
+            showProductWaitlistButton, becomeClientButton, logoutButton;
     MainPanel mainPanel;
     ButtonPanel buttonPanel;
     ActionPanel actionPanel;
@@ -26,8 +29,7 @@ public class ClerkMenuState implements WarehouseState {
     }
 
     private void setDefaultLayout() {
-        mainPanel.setLayout(new GridLayout(1, 2));
-        buttonPanel.setLayout(new GridLayout(6, 1, 5, 5));
+        buttonPanel.setLayout(new GridLayout(7, 1, 5, 5));
         actionPanel.setLayout(new GridLayout(1, 1));
     }
 
@@ -38,12 +40,13 @@ public class ClerkMenuState implements WarehouseState {
     private void buildGUI() {
         frame.setTitle("Clerk Menu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 400);
+        frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
         addClientButton = new JButton("Add Client");
         showProductsButton = new JButton("Show Products");
         acceptPaymentButton = new JButton("Accept Payment");
+        showProductWaitlistButton = new JButton("Show Product Waitlist");
         switchToClientQueryButton = new JButton("Client Queries");
         becomeClientButton = new JButton("Login as Client");
         logoutButton = new JButton("Logout");
@@ -51,6 +54,7 @@ public class ClerkMenuState implements WarehouseState {
         addClientButton.addActionListener(e -> addClient());
         showProductsButton.addActionListener(e -> displayProducts());
         acceptPaymentButton.addActionListener(e -> acceptPayment());
+        showProductWaitlistButton.addActionListener(e -> displayProductWaitlist());
         switchToClientQueryButton.addActionListener(e -> switchToClientQueryState());
         becomeClientButton.addActionListener(e -> becomeClient());
         logoutButton.addActionListener(e -> logout());
@@ -59,12 +63,13 @@ public class ClerkMenuState implements WarehouseState {
         buttonPanel.add(showProductsButton);
         buttonPanel.add(switchToClientQueryButton);
         buttonPanel.add(acceptPaymentButton);
+        buttonPanel.add(showProductWaitlistButton);
         buttonPanel.add(becomeClientButton);
         buttonPanel.add(logoutButton);
 
         frame.add(mainPanel);
-        mainPanel.add(buttonPanel);
-        mainPanel.add(actionPanel);
+        mainPanel.addButtonPanel(buttonPanel);
+        mainPanel.addActionPanel(actionPanel);
         frame.setVisible(true);
     }
 
@@ -104,8 +109,17 @@ public class ClerkMenuState implements WarehouseState {
     }
 
     public void addClient() {
-        var name = JOptionPane.showInputDialog(frame, "Enter client name: ");
-        var address = JOptionPane.showInputDialog(frame, "Enter client address: ");
+        var name = Utilities.getValidInput(frame, "Enter client name: ", "Client name cannot be empty",
+                s -> !s.isEmpty());
+        if (name == null) {
+            return;
+        }
+
+        var address = Utilities.getValidInput(frame, "Enter client address: ", "Client address cannot be empty",
+                s -> !s.isEmpty());
+        if (address == null) {
+            return;
+        }
 
         var addedId = Warehouse.instance().addClient(name, address);
 
@@ -117,6 +131,7 @@ public class ClerkMenuState implements WarehouseState {
     }
 
     private void displayProducts() {
+         setDefaultLayout();
         var productTextArea = new JTextArea();
 
         var productIterator = Warehouse.instance().getProductIterator();
@@ -127,56 +142,133 @@ public class ClerkMenuState implements WarehouseState {
                     + "\nProduct Quantity: " + product.getQuantity() + "\n\n");
         }
 
-        actionPanel.removeAll();
-
         var productScrollPane = new JScrollPane(productTextArea);
         productScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
+        actionPanel.clear();
         actionPanel.add(productScrollPane);
-
         frame.revalidate();
         frame.repaint();
     }
 
     private void displayProductWaitlist() {
-        var productTextArea = new JTextArea();
+        var productIdLabel = new JLabel("Product Id: ");
+        var productIdField = new JTextField(10);
+        var waitlistTextArea = new JTextArea();
+        waitlistTextArea.setEditable(false);
 
-        var productIterator = Warehouse.instance().getProductIterator();
-        while (productIterator.hasNext()) {
-            var product = productIterator.next();
-            productTextArea.append("Product Id: " + product.getId() + "\nProuct Name: "
-                    + product.getName() + "\nProduct Price: " + product.getPrice()
-                    + "\nProduct Quantity: " + product.getQuantity() + "\n\n");
-        }
+        var scrollPane = new JScrollPane(waitlistTextArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
-        actionPanel.removeAll();
+        actionPanel.clear();
 
-        var productScrollPane = new JScrollPane(productTextArea);
-        productScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        var layout = new GroupLayout(actionPanel);
+        actionPanel.setLayout(layout);
 
-        actionPanel.add(productScrollPane);
+        layout.setHorizontalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup()
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addComponent(productIdLabel, GroupLayout.PREFERRED_SIZE,
+                                                        60,
+                                                        GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(productIdField, GroupLayout.PREFERRED_SIZE, 76,
+                                                        GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 375, Short.MAX_VALUE))
+                                .addContainerGap(19, Short.MAX_VALUE))
+        );
 
-        frame.revalidate();
-        frame.repaint();
+        layout.setVerticalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(productIdLabel, GroupLayout.PREFERRED_SIZE, 22,
+                                                GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(productIdField, GroupLayout.PREFERRED_SIZE,
+                                                GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 239, Short.MAX_VALUE)
+                                .addContainerGap(27, Short.MAX_VALUE))
+        );
+
+        productIdField.requestFocus();
+
+        productIdField.getDocument().addDocumentListener(new DocumentListener() {
+            private void updateOutput(DocumentEvent e) {
+                String productId = productIdField.getText();
+                Optional<Product> product = Warehouse.instance().getProductById(productId);
+
+                waitlistTextArea.setText("Waitlist: \n\n");
+
+                if (product.isEmpty()) {
+                    waitlistTextArea.setText("Product not found");
+                    return;
+                }
+
+                var waitlistIterator = product.get().getWaitlist().getIterator();
+                if (!waitlistIterator.hasNext()) {
+                    waitlistTextArea.setText("Product Waitlist is empty");
+                    return;
+                }
+
+                while (waitlistIterator.hasNext()) {
+                    var waitlistItem = waitlistIterator.next();
+                    waitlistTextArea.append("Client Id: " + waitlistItem.getClientId() + "\nQuantity: "
+                            + waitlistItem.getQuantity() + "\nDate:" + waitlistItem.getDate() + "\n\n");
+                }
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateOutput(e);
+            }
+        });
     }
 
     private void acceptPayment() {
-        var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
+        var clientId = Utilities.getValidInput(frame, "Enter client id: ", "Client id cannot be empty",
+                s -> !s.isEmpty());
+        if (clientId == null) {
+            return;
+        }
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
+
         if (client.isEmpty()) {
             JOptionPane.showMessageDialog(frame, "Client not found", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        var paymentAmount = JOptionPane.showInputDialog(frame, "Enter payment amount: ");
-
-        if (Double.parseDouble(paymentAmount) < 0) {
-            JOptionPane.showMessageDialog(frame, "Payment amount must be non-negative", "Error", JOptionPane.ERROR_MESSAGE);
+        var paymentAmount = Utilities.getValidInput(frame, "Enter payment amount: ", "Payment amount must be a " +
+                        "positive number",
+                s -> {
+                    try {
+                        var n = Double.parseDouble(s);
+                        return n >= 0;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                });
+        if (paymentAmount == null) {
             return;
         }
 
         client.get().addToBalance(Double.parseDouble(paymentAmount));
-        JOptionPane.showMessageDialog(frame, "Client " + client.get().getName() + " new balance: " + client.get().getBalance());
+        JOptionPane.showMessageDialog(frame,
+                "Client " + client.get().getName() + " new balance: " + client.get().getBalance());
     }
 }

@@ -12,7 +12,8 @@ public class ClientInfoState implements WarehouseState {
     private static ClientInfoState instance;
 
     JFrame frame;
-    AbstractButton showClientsButton, showClientsWithOutstandingBalanceButton, showClientsWithNoTransactionsButton, logoutButton;
+    AbstractButton showClientsButton, showClientsWithOutstandingBalanceButton, showClientsWithNoTransactionsButton,
+            logoutButton;
 
     MainPanel mainPanel;
     ButtonPanel buttonPanel;
@@ -27,7 +28,6 @@ public class ClientInfoState implements WarehouseState {
     }
 
     private void setDefaultLayout() {
-        mainPanel.setLayout(new GridLayout(1, 2));
         buttonPanel.setLayout(new GridLayout(4, 1, 5, 5));
         actionPanel.setLayout(new GridLayout(1, 1));
     }
@@ -37,15 +37,15 @@ public class ClientInfoState implements WarehouseState {
     }
 
     private void buildGUI() {
-        frame.setTitle("Manager Menu");
+        frame.setTitle("Client Info");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 400);
+        frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
         showClientsButton = new JButton("Show Clients");
         showClientsWithOutstandingBalanceButton = new JButton("Show Clients With Outstanding Balance");
         showClientsWithNoTransactionsButton = new JButton("Show Clients With No Transactions In The Last Six Months");
-        logoutButton = new JButton("Logout");
+        logoutButton = new JButton("Go Back");
 
         showClientsButton.addActionListener(e -> showClients());
         showClientsWithOutstandingBalanceButton.addActionListener(e -> showClientsWithOutstandingBalance());
@@ -58,8 +58,8 @@ public class ClientInfoState implements WarehouseState {
         buttonPanel.add(logoutButton);
 
         frame.add(mainPanel);
-        mainPanel.add(buttonPanel);
-        mainPanel.add(actionPanel);
+        mainPanel.addButtonPanel(buttonPanel);
+        mainPanel.addActionPanel(actionPanel);
         frame.setVisible(true);
     }
 
@@ -82,6 +82,7 @@ public class ClientInfoState implements WarehouseState {
         if (!hasClients) {
             clientDetails.append("No clients found");
         }
+
         clientDetails.setLineWrap(true);
         clientDetails.setWrapStyleWord(true);
 

@@ -27,6 +27,8 @@ public class WarehouseContext {
     private final JFrame frame = new JFrame();
 
     private WarehouseContext() {
+        setLookAndFeel();
+
         askToLoad();
 
         frame.addWindowListener(new WindowAdapter() {
@@ -55,7 +57,6 @@ public class WarehouseContext {
         // @formatter:on
         currentState = LOGIN;
 
-        setLookAndFeel();
     }
 
     public static WarehouseContext instance() {
@@ -128,7 +129,6 @@ public class WarehouseContext {
     }
 
     private void terminate() {
-
         askToSave();
         System.exit(0);
     }

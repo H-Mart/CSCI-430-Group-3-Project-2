@@ -6,7 +6,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 public class ManagerMenuState implements WarehouseState {
     private static ManagerMenuState instance;
@@ -27,7 +26,6 @@ public class ManagerMenuState implements WarehouseState {
     }
 
     private void setDefaultLayout() {
-        mainPanel.setLayout(new GridLayout(1, 2));
         buttonPanel.setLayout(new GridLayout(4, 1, 5, 5));
         actionPanel.setLayout(new GridLayout(1, 1));
     }
@@ -39,7 +37,7 @@ public class ManagerMenuState implements WarehouseState {
     private void buildGUI() {
         frame.setTitle("Manager Menu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 400);
+        frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
         addProductButton = new JButton("Add Product");
@@ -58,8 +56,8 @@ public class ManagerMenuState implements WarehouseState {
         buttonPanel.add(logoutButton);
 
         frame.add(mainPanel);
-        mainPanel.add(buttonPanel);
-        mainPanel.add(actionPanel);
+        mainPanel.addButtonPanel(buttonPanel);
+        mainPanel.addActionPanel(actionPanel);
         frame.setVisible(true);
     }
 
@@ -85,13 +83,13 @@ public class ManagerMenuState implements WarehouseState {
     }
 
     public void addProduct() {
-        var name = getValidInput("Enter product name: ", "Product name cannot be empty",
+        var name = Utilities.getValidInput(frame, "Enter product name: ", "Product name cannot be empty",
                 s -> !s.isEmpty());
         if (name == null) {
             return;
         }
 
-        var price = getValidInput("Enter product price: ", "Invalid Price",
+        var price = Utilities.getValidInput(frame, "Enter product price: ", "Invalid Price",
                 (input) -> {
                     try {
                         var p = Double.parseDouble(input);
@@ -104,7 +102,7 @@ public class ManagerMenuState implements WarehouseState {
             return;
         }
 
-        var quantity = getValidInput("Enter product quantity: ", "Invalid Quantity",
+        var quantity = Utilities.getValidInput(frame, "Enter product quantity: ", "Invalid Quantity",
                 (input) -> {
                     try {
                         var q = Integer.parseInt(input);
@@ -120,52 +118,11 @@ public class ManagerMenuState implements WarehouseState {
         var addedId = Warehouse.instance().addProduct(name, Double.parseDouble(price), Integer.parseInt(quantity));
 
         if (Warehouse.instance().getProductById(addedId).isPresent()) {
-            JOptionPane.showMessageDialog(frame, "Product added - " + Warehouse.instance().getProductById(addedId).get());
+            JOptionPane.showMessageDialog(frame,
+                    "Product added - " + Warehouse.instance().getProductById(addedId).get());
         } else {
             JOptionPane.showMessageDialog(frame, "Product not added", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private String getValidInput(String message, String errorMessage, Predicate<String> validator) {
-        while (true) {
-            String input = JOptionPane.showInputDialog(frame, message);
-            if (input == null || !validator.test(input)) {
-                if (input == null) return null;
-                JOptionPane.showMessageDialog(frame, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
-            } else {
-                return input;
-            }
-        }
-    }
-
-    private static void printWaitlist() {
-        System.out.print("Enter product id: ");
-        String productId = Utilities.getUserInput();
-
-        Optional<Product> product = Warehouse.instance().getProductById(productId);
-
-        if (product.isEmpty()) {
-            System.out.println("Product not found");
-            return;
-        }
-
-        System.out.println("Waitlist for " + product.get().getName() + ": ");
-
-        var waitlistIterator = product.get().getWaitlist().getIterator();
-
-        if (!waitlistIterator.hasNext()) {
-            System.out.println("\nWaitlist is empty");
-            return;
-        }
-
-        while (waitlistIterator.hasNext()) {
-            var waitlistItem = waitlistIterator.next();
-            System.out.println("\tWaitlisted by: " + waitlistItem.getClientId());
-            System.out.println("\tDate: " + waitlistItem.getDate());
-            System.out.println("\tQuantity: " + waitlistItem.getQuantity());
-            System.out.println();
-        }
-
     }
 
     private static void acceptShipment() {
@@ -196,7 +153,8 @@ public class ManagerMenuState implements WarehouseState {
         while (waitlistCopyIterator.hasNext()) {
             var waitlistItem = waitlistCopyIterator.next();
             System.out.println("Processing waitlist item: ");
-            System.out.printf("\tClient ID: %s\n\tQuantity: %d\n", waitlistItem.getClientId(), waitlistItem.getQuantity());
+            System.out.printf("\tClient ID: %s\n\tQuantity: %d\n", waitlistItem.getClientId(),
+                    waitlistItem.getQuantity());
             System.out.println("\tDate: " + waitlistItem.getDate());
 
 
@@ -208,7 +166,8 @@ public class ManagerMenuState implements WarehouseState {
 
             switch (input) {
                 case "1": // order waitlisted amount
-                    Warehouse.instance().fillWaitlistOrder(waitlistItem.getWaitlistItemId(), productId, waitlistItem.getQuantity());
+                    Warehouse.instance().fillWaitlistOrder(waitlistItem.getWaitlistItemId(), productId,
+                            waitlistItem.getQuantity());
                     break;
                 case "2": // order different amount
                     System.out.print("\nPlease enter the amount to order: ");
