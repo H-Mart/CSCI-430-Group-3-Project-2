@@ -5,7 +5,7 @@ ClientState
     WishlistState
         order system
 
-        remove product from wishlist - doneish but ugly
+        remove product from wishlist - doneish but ugly ui
         change quantity of product in wishlist - done
 
 
@@ -21,4 +21,4 @@ ClerkState - doneish
 
 ManagerState
     gui for adding products - doneish (only dialogs)
-    gui for receiving shipment
+    gui for receiving shipment - doneish (very ugly code)

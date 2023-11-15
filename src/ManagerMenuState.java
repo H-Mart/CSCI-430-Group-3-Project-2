@@ -5,7 +5,7 @@ import GUI.MainPanel;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ManagerMenuState implements WarehouseState {
     private static ManagerMenuState instance;
@@ -125,61 +125,145 @@ public class ManagerMenuState implements WarehouseState {
         }
     }
 
-    private static void acceptShipment() {
-        System.out.print("Please enter the product id for the shipment: ");
-        String productId = Utilities.getUserInput();
-        Optional<Product> shipmentProductOp = Warehouse.instance().getProductById(productId);
-
-        if (shipmentProductOp.isEmpty()) {
-            System.out.println("Product not found");
+    private void acceptShipment() {
+        var productId = Utilities.getValidInput(frame, "Enter the product id for the shipment: ",
+                "Invalid Product ID",
+                s -> {
+                    if (s.isEmpty()) {
+                        return false;
+                    }
+                    return Warehouse.instance().getProductById(s).isPresent();
+                });
+        if (productId == null) {
             return;
         }
 
-        Product shipmentProduct = shipmentProductOp.get();
 
-        System.out.print("\nPlease enter the quantity: ");
-        int shipmentQuantity = Integer.parseInt(Utilities.getUserInput());
-        if (shipmentQuantity < 0) {
-            System.out.println("\nQuantity must be non-negative");
-            return;
-        }
-
-        shipmentProduct.setQuantity(shipmentProduct.getQuantity() + shipmentQuantity);
-
-        System.out.printf("\nUpdated product quantity from %d to %d\n\n",
-                shipmentProduct.getQuantity() - shipmentQuantity, shipmentProduct.getQuantity());
-
-        var waitlistCopyIterator = new Waitlist(shipmentProduct.getWaitlist()).getIterator();
-        while (waitlistCopyIterator.hasNext()) {
-            var waitlistItem = waitlistCopyIterator.next();
-            System.out.println("Processing waitlist item: ");
-            System.out.printf("\tClient ID: %s\n\tQuantity: %d\n", waitlistItem.getClientId(),
-                    waitlistItem.getQuantity());
-            System.out.println("\tDate: " + waitlistItem.getDate());
-
-
-            System.out.println("Options:");
-            System.out.println("    1. Order Waitlisted Amount");
-            System.out.println("    2. Order Different Amount");
-            System.out.println("    3. Skip");
-            String input = Utilities.getUserInput();
-
-            switch (input) {
-                case "1": // order waitlisted amount
-                    Warehouse.instance().fillWaitlistOrder(waitlistItem.getWaitlistItemId(), productId,
-                            waitlistItem.getQuantity());
-                    break;
-                case "2": // order different amount
-                    System.out.print("\nPlease enter the amount to order: ");
-                    int orderQuantity = Integer.parseInt(Utilities.getUserInput());
-                    Warehouse.instance().fillWaitlistOrder(waitlistItem.getWaitlistItemId(), productId, orderQuantity);
-                    break;
-                case "3": // skip
-                    break;
-                default:
-                    System.out.println("Invalid input");
-                    break;
+        var quantity = Utilities.getValidInput(frame, "Enter the quantity: ", "Invalid Quantity", (input) -> {
+            try {
+                var q = Integer.parseInt(input);
+                return (q >= 0);
+            } catch (NumberFormatException e) {
+                return false;
             }
+        });
+        if (quantity == null) {
+            return;
         }
+
+        var product = Warehouse.instance().getProductById(productId).orElseThrow();
+        product.setQuantity(product.getQuantity() + Integer.parseInt(quantity));
+
+        JOptionPane.showMessageDialog(frame,
+                "Updated product quantity from " + (product.getQuantity() - Integer.parseInt(quantity)) + " to " + product.getQuantity());
+
+        if (product.getWaitlist().isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "No items in the waitlist for this product");
+            return;
+        }
+
+        var doProcessWaitlist = JOptionPane.showConfirmDialog(frame,
+                product.getWaitlist().size() + " items in the waitlist for this product. Process them?",
+                "Process Waitlist",
+                JOptionPane.YES_NO_OPTION);
+        if (doProcessWaitlist == JOptionPane.YES_OPTION) {
+            processWaitlist(productId);
+        }
+    }
+
+    private void processWaitlist(String productId) {
+        var waitlistInfoLabel = new JLabel();
+        var qtySpinnerLabel = new JLabel();
+        var qtySpinner = new JSpinner();
+        var remainingQuantityLabel = new JLabel();
+
+        var fillOrderButton = new JButton("Fill Order");
+        var skipButton = new JButton("Skip");
+
+        var product = Warehouse.instance().getProductById(productId).orElseThrow();
+
+        var waitlistCopyIterator = new Waitlist(product.getWaitlist()).getIterator();
+
+        // the AtomicReference is used to allow the lambda to modify the value of the waitlistItem
+        // this is necessary because the lambda is not allowed to modify local variables
+        AtomicReference<WaitlistItem> waitlistItem = new AtomicReference<>(waitlistCopyIterator.next());
+        var client = Warehouse.instance().getClientById(waitlistItem.get().getClientId()).orElseThrow();
+        waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+                "<br><br></html>");
+        qtySpinnerLabel.setText("Quantity: ");
+        qtySpinner.setValue(waitlistItem.get().getQuantity());
+
+        remainingQuantityLabel.setText("Remaining Quantity: " + product.getQuantity());
+
+        fillOrderButton.addActionListener(e -> {
+            Warehouse.instance().fillWaitlistOrder(waitlistItem.get().getWaitlistItemId(), productId,
+                    (int) qtySpinner.getValue());
+            if (waitlistCopyIterator.hasNext()) {
+                waitlistItem.set(waitlistCopyIterator.next());
+                waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+                        "<br><br></html>");
+                qtySpinner.setValue(waitlistItem.get().getQuantity());
+                remainingQuantityLabel.setText("Remaining Quantity: " + product.getQuantity());
+                waitlistItem.set(waitlistCopyIterator.next());
+            } else {
+                actionPanel.clear();
+                JOptionPane.showMessageDialog(frame, "Waitlist processed");
+            }
+        });
+
+        skipButton.addActionListener(e -> {
+            if (waitlistCopyIterator.hasNext()) {
+                var nextWaitlistItem = waitlistCopyIterator.next();
+                waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+                "<br><br></html>");
+                qtySpinner.setValue(nextWaitlistItem.getQuantity());
+            } else {
+                actionPanel.clear();
+                JOptionPane.showMessageDialog(frame, "Waitlist processed");
+            }
+        });
+
+        GroupLayout layout = new GroupLayout(actionPanel);
+        actionPanel.setLayout(layout);
+
+        layout.setHorizontalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup()
+                                        .addComponent(waitlistInfoLabel, GroupLayout.DEFAULT_SIZE, 194, Short.MAX_VALUE)
+                                        .addComponent(remainingQuantityLabel, GroupLayout.DEFAULT_SIZE, 194,
+                                                Short.MAX_VALUE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(fillOrderButton, GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(qtySpinnerLabel, GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup()
+                                        .addComponent(skipButton, GroupLayout.PREFERRED_SIZE, 92,
+                                                GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(qtySpinner, GroupLayout.PREFERRED_SIZE, 86,
+                                                GroupLayout.PREFERRED_SIZE))
+                                .addGap(449, 449, 449))
+        );
+        layout.setVerticalGroup(
+                layout.createParallelGroup()
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(qtySpinnerLabel)
+                                        .addComponent(qtySpinner, GroupLayout.PREFERRED_SIZE,
+                                                GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(waitlistInfoLabel, GroupLayout.PREFERRED_SIZE, 60,
+                                                GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(fillOrderButton)
+                                        .addComponent(skipButton)
+                                        .addComponent(remainingQuantityLabel))
+                                .addContainerGap(515, Short.MAX_VALUE))
+        );
     }
 }

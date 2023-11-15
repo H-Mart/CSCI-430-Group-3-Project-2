@@ -172,7 +172,7 @@ public class ClerkMenuState implements WarehouseState {
                                 .addGroup(layout.createParallelGroup()
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(productIdLabel, GroupLayout.PREFERRED_SIZE,
-                                                        60,
+                                                        90,
                                                         GroupLayout.PREFERRED_SIZE)
                                                 .addGap(18, 18, 18)
                                                 .addComponent(productIdField, GroupLayout.PREFERRED_SIZE, 76,

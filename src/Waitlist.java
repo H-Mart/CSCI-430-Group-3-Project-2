@@ -46,4 +46,12 @@ public class Waitlist implements Serializable {
         return waitlist.iterator();
     }
 
+    public int size() {
+        return waitlist.size();
+    }
+
+    public boolean isEmpty() {
+        return waitlist.isEmpty();
+    }
+
 }
