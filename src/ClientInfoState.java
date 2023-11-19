@@ -11,13 +11,11 @@ import java.util.function.Predicate;
 public class ClientInfoState implements WarehouseState {
     private static ClientInfoState instance;
 
-    JFrame frame;
-    AbstractButton showClientsButton, showClientsWithOutstandingBalanceButton, showClientsWithNoTransactionsButton,
-            logoutButton;
+    private JFrame frame;
 
-    MainPanel mainPanel;
-    ButtonPanel buttonPanel;
-    ActionPanel actionPanel;
+    private final MainPanel mainPanel;
+    private final ButtonPanel buttonPanel;
+    private final ActionPanel actionPanel;
 
     private ClientInfoState() {
         mainPanel = new MainPanel();
@@ -42,14 +40,15 @@ public class ClientInfoState implements WarehouseState {
         frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
-        showClientsButton = new JButton("Show Clients");
-        showClientsWithOutstandingBalanceButton = new JButton("Show Clients With Outstanding Balance");
-        showClientsWithNoTransactionsButton = new JButton("Show Clients With No Transactions In The Last Six Months");
-        logoutButton = new JButton("Go Back");
+        var showClientsButton = new JButton("Show Clients");
+        var showClientsWithOutstandingBalanceButton = new JButton("Show Clients With Outstanding Balance");
+        var showClientsWithNoTransactionsButton = new JButton("Show Clients With No Transactions In The Last Six Months");
+        var logoutButton = new JButton("Go Back");
 
         showClientsButton.addActionListener(e -> showClients());
         showClientsWithOutstandingBalanceButton.addActionListener(e -> showClientsWithOutstandingBalance());
         showClientsWithNoTransactionsButton.addActionListener(e -> showClientsWithNoTransactions());
+        //noinspection DuplicatedCode
         logoutButton.addActionListener(e -> logout());
 
         buttonPanel.add(showClientsButton);
@@ -83,6 +82,7 @@ public class ClientInfoState implements WarehouseState {
             clientDetails.append("No clients found");
         }
 
+        //noinspection DuplicatedCode
         clientDetails.setLineWrap(true);
         clientDetails.setWrapStyleWord(true);
 

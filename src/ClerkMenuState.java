@@ -12,13 +12,10 @@ import java.util.Optional;
 public class ClerkMenuState implements WarehouseState {
     private static ClerkMenuState instance;
 
-    JFrame frame;
-    AbstractButton addClientButton, showProductsButton,
-            switchToClientQueryButton, acceptPaymentButton,
-            showProductWaitlistButton, becomeClientButton, logoutButton;
-    MainPanel mainPanel;
-    ButtonPanel buttonPanel;
-    ActionPanel actionPanel;
+    private JFrame frame;
+    private final MainPanel mainPanel;
+    private final ButtonPanel buttonPanel;
+    private final ActionPanel actionPanel;
 
     private ClerkMenuState() {
         mainPanel = new MainPanel();
@@ -43,13 +40,13 @@ public class ClerkMenuState implements WarehouseState {
         frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
-        addClientButton = new JButton("Add Client");
-        showProductsButton = new JButton("Show Products");
-        acceptPaymentButton = new JButton("Accept Payment");
-        showProductWaitlistButton = new JButton("Show Product Waitlist");
-        switchToClientQueryButton = new JButton("Client Queries");
-        becomeClientButton = new JButton("Login as Client");
-        logoutButton = new JButton("Logout");
+        var addClientButton = new JButton("Add Client");
+        var showProductsButton = new JButton("Show Products");
+        var acceptPaymentButton = new JButton("Accept Payment");
+        var showProductWaitlistButton = new JButton("Show Product Waitlist");
+        var switchToClientQueryButton = new JButton("Client Queries");
+        var becomeClientButton = new JButton("Login as Client");
+        var logoutButton = new JButton("Logout");
 
         addClientButton.addActionListener(e -> addClient());
         showProductsButton.addActionListener(e -> displayProducts());
@@ -57,6 +54,7 @@ public class ClerkMenuState implements WarehouseState {
         showProductWaitlistButton.addActionListener(e -> displayProductWaitlist());
         switchToClientQueryButton.addActionListener(e -> switchToClientQueryState());
         becomeClientButton.addActionListener(e -> becomeClient());
+        //noinspection DuplicatedCode
         logoutButton.addActionListener(e -> logout());
 
         buttonPanel.add(addClientButton);
@@ -85,7 +83,7 @@ public class ClerkMenuState implements WarehouseState {
     }
 
     private void becomeClient() {
-        var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
+        @SuppressWarnings("DuplicatedCode") var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (clientId == null) {
@@ -198,7 +196,7 @@ public class ClerkMenuState implements WarehouseState {
         productIdField.requestFocus();
 
         productIdField.getDocument().addDocumentListener(new DocumentListener() {
-            private void updateOutput(DocumentEvent e) {
+            private void updateOutput() {
                 String productId = productIdField.getText();
                 Optional<Product> product = Warehouse.instance().getProductById(productId);
 
@@ -224,17 +222,17 @@ public class ClerkMenuState implements WarehouseState {
 
             @Override
             public void insertUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
         });
     }

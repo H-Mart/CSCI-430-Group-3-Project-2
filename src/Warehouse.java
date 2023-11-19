@@ -29,7 +29,7 @@ public class Warehouse implements Serializable {
      * @precondition none
      * @postcondition the warehouse is serialized to the file warehouse.ser
      */
-    public static Boolean serializeWarehouse() {
+    public static void serializeWarehouse() {
         try (var fileOut = new FileOutputStream("warehouse.ser");
              var objectOut = new ObjectOutputStream(fileOut)) {
             objectOut.writeObject(warehouse);
@@ -37,9 +37,7 @@ public class Warehouse implements Serializable {
         } catch (IOException e) {
             //noinspection CallToPrintStackTrace
             e.printStackTrace();
-            return false;
         }
-        return true;
     }
 
     /**

@@ -17,13 +17,6 @@ public class Wishlist implements Serializable {
     }
 
 
-    // copy constructor
-    public Wishlist(Wishlist other) {
-        wishlist = new ArrayList<>();
-        for (WishlistItem item : other.wishlist) {
-            wishlist.add(new WishlistItem(item));
-        }
-    }
     /**
      * Adds a WishlistItem to the wishlist
      *

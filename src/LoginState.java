@@ -17,7 +17,7 @@ public class LoginState implements WarehouseState {
     }
 
     private void becomeClient() {
-        var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
+        @SuppressWarnings("DuplicatedCode") var clientId = JOptionPane.showInputDialog(frame, "Enter client id: ");
 
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
         if (clientId == null) {

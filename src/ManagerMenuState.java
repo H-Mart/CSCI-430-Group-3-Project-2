@@ -10,12 +10,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ManagerMenuState implements WarehouseState {
     private static ManagerMenuState instance;
 
-    JFrame frame;
-    AbstractButton addProductButton, acceptShipmentButton, clerkButton, logoutButton;
+    private JFrame frame;
 
-    MainPanel mainPanel;
-    ButtonPanel buttonPanel;
-    ActionPanel actionPanel;
+    private final MainPanel mainPanel;
+    private final ButtonPanel buttonPanel;
+    private final ActionPanel actionPanel;
 
     private ManagerMenuState() {
         mainPanel = new MainPanel();
@@ -40,14 +39,15 @@ public class ManagerMenuState implements WarehouseState {
         frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
-        addProductButton = new JButton("Add Product");
-        acceptShipmentButton = new JButton("Accept Shipment");
-        clerkButton = new JButton("Clerk");
-        logoutButton = new JButton("Logout");
+        var addProductButton = new JButton("Add Product");
+        var acceptShipmentButton = new JButton("Accept Shipment");
+        var clerkButton = new JButton("Clerk");
+        var logoutButton = new JButton("Logout");
 
         addProductButton.addActionListener(e -> addProduct());
         acceptShipmentButton.addActionListener(e -> acceptShipment());
         clerkButton.addActionListener(e -> becomeClerk());
+        //noinspection DuplicatedCode
         logoutButton.addActionListener(e -> logout());
 
         buttonPanel.add(addProductButton);
@@ -138,7 +138,6 @@ public class ManagerMenuState implements WarehouseState {
             return;
         }
 
-
         var quantity = Utilities.getValidInput(frame, "Enter the quantity: ", "Invalid Quantity", (input) -> {
             try {
                 var q = Integer.parseInt(input);
@@ -187,8 +186,8 @@ public class ManagerMenuState implements WarehouseState {
         // the AtomicReference is used to allow the lambda to modify the value of the waitlistItem
         // this is necessary because the lambda is not allowed to modify local variables
         AtomicReference<WaitlistItem> waitlistItem = new AtomicReference<>(waitlistCopyIterator.next());
-        var client = Warehouse.instance().getClientById(waitlistItem.get().getClientId()).orElseThrow();
-        waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+        AtomicReference<Client> client = new AtomicReference<>(Warehouse.instance().getClientById(waitlistItem.get().getClientId()).orElseThrow());
+        waitlistInfoLabel.setText("<html>Client Name " + client.get().getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
                 "<br><br></html>");
         qtySpinnerLabel.setText("Quantity: ");
         qtySpinner.setValue(waitlistItem.get().getQuantity());
@@ -200,11 +199,11 @@ public class ManagerMenuState implements WarehouseState {
                     (int) qtySpinner.getValue());
             if (waitlistCopyIterator.hasNext()) {
                 waitlistItem.set(waitlistCopyIterator.next());
-                waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+                client.set(Warehouse.instance().getClientById(waitlistItem.get().getClientId()).orElseThrow());
+                waitlistInfoLabel.setText("<html>Client Name " + client.get().getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
                         "<br><br></html>");
                 qtySpinner.setValue(waitlistItem.get().getQuantity());
                 remainingQuantityLabel.setText("Remaining Quantity: " + product.getQuantity());
-                waitlistItem.set(waitlistCopyIterator.next());
             } else {
                 actionPanel.clear();
                 JOptionPane.showMessageDialog(frame, "Waitlist processed");
@@ -214,7 +213,7 @@ public class ManagerMenuState implements WarehouseState {
         skipButton.addActionListener(e -> {
             if (waitlistCopyIterator.hasNext()) {
                 var nextWaitlistItem = waitlistCopyIterator.next();
-                waitlistInfoLabel.setText("<html>Client Name " + client.getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
+                waitlistInfoLabel.setText("<html>Client Name " + client.get().getName() + "<br>Waitlist Quantity: " + waitlistItem.get().getQuantity() +
                 "<br><br></html>");
                 qtySpinner.setValue(nextWaitlistItem.getQuantity());
             } else {
@@ -263,7 +262,7 @@ public class ManagerMenuState implements WarehouseState {
                                         .addComponent(fillOrderButton)
                                         .addComponent(skipButton)
                                         .addComponent(remainingQuantityLabel))
-                                .addContainerGap(515, Short.MAX_VALUE))
+                                .addContainerGap(450, Short.MAX_VALUE))
         );
     }
 }

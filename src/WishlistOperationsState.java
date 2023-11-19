@@ -14,12 +14,10 @@ import java.util.Optional;
 public class WishlistOperationsState implements WarehouseState {
     private static WishlistOperationsState instance;
 
-    JFrame frame;
-    AbstractButton viewWishlistButton, addProductsToWishlistButton, removeProductsFromWishlistButton,
-            changeQuantityOfProductsInWishlistButton, orderProductsInWishlistButton, exitButton;
-    MainPanel mainPanel;
-    ButtonPanel buttonPanel;
-    ActionPanel actionPanel;
+    private JFrame frame;
+    private final MainPanel mainPanel;
+    private final ButtonPanel buttonPanel;
+    private final ActionPanel actionPanel;
 
     private WishlistOperationsState() {
         mainPanel = new MainPanel();
@@ -44,12 +42,12 @@ public class WishlistOperationsState implements WarehouseState {
         frame.setSize(1200, 600);
         frame.setLocationRelativeTo(null);
 
-        viewWishlistButton = new JButton("View Wishlist");
-        addProductsToWishlistButton = new JButton("Add Products to Wishlist");
-        removeProductsFromWishlistButton = new JButton("Remove Products from Wishlist");
-        changeQuantityOfProductsInWishlistButton = new JButton("Change Quantity of Products in Wishlist");
-        orderProductsInWishlistButton = new JButton("Order Products in Wishlist");
-        exitButton = new JButton("Go Back");
+        var viewWishlistButton = new JButton("View Wishlist");
+        var addProductsToWishlistButton = new JButton("Add Products to Wishlist");
+        var removeProductsFromWishlistButton = new JButton("Remove Products from Wishlist");
+        var changeQuantityOfProductsInWishlistButton = new JButton("Change Quantity of Products in Wishlist");
+        var orderProductsInWishlistButton = new JButton("Order Products in Wishlist");
+        var exitButton = new JButton("Go Back");
 
         viewWishlistButton.addActionListener(e -> displayClientWishlist());
         addProductsToWishlistButton.addActionListener(e -> addProductsToClientWishlist());
@@ -58,6 +56,7 @@ public class WishlistOperationsState implements WarehouseState {
         orderProductsInWishlistButton.addActionListener(e -> startOrder());
         exitButton.addActionListener(e -> exit());
 
+        //noinspection DuplicatedCode
         buttonPanel.add(viewWishlistButton);
         buttonPanel.add(addProductsToWishlistButton);
         buttonPanel.add(removeProductsFromWishlistButton);
@@ -93,24 +92,27 @@ public class WishlistOperationsState implements WarehouseState {
         var layout = new GroupLayout(actionPanel);
         actionPanel.setLayout(layout);
 
-        var itemPanel = getOrderedItemPanel(wishlistSize, client);
+        var itemPanel = new JPanel();
+
+        setOrderedItemPanel(itemPanel, wishlistSize, client);
 
         var scrollPane = new JScrollPane(itemPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         var submitButton = new JButton("Submit");
-//        submitButton.addActionListener(e -> {
-//            for (var component : itemPanel.getComponents()) {
-//                if (component instanceof OrderQuantityPanel) {
-//                    ((OrderQuantityPanel) component).getWishlistItem().setQuantity(
-//                            ((OrderQuantityPanel) component).getQuantity());
-//                }
-//            }
-//        });
+        submitButton.addActionListener(e -> makeOrderFromOrderedItemPanels(itemPanel, client));
 
         var resetButton = new JButton("Reset");
 
+        resetButton.addActionListener(e -> {
+            itemPanel.removeAll();
+            setOrderedItemPanel(itemPanel, wishlistSize, client);
+            itemPanel.revalidate();
+            itemPanel.repaint();
+        });
+
+        //noinspection DuplicatedCode
         actionPanel.clear();
 
         layout.setHorizontalGroup(
@@ -139,6 +141,7 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     private void displayClientWishlist() {
+        //noinspection DuplicatedCode
         setDefaultLayout();
         String clientId = WarehouseContext.currentClientId;
         Client client = Warehouse.instance().getClientById(clientId).orElseThrow();
@@ -190,12 +193,10 @@ public class WishlistOperationsState implements WarehouseState {
      * the product(s) is/are added to the client's wishlist as a WishlistItem
      */
     public void addProductsToClientWishlist() {
-//        setDefaultLayout();
         String clientId = WarehouseContext.currentClientId;
         Optional<Client> client = Warehouse.instance().getClientById(clientId);
-        // todo make this an error debug message
         if (client.isEmpty()) {
-            System.out.println("Client not found");
+            JOptionPane.showMessageDialog(frame, "Client not found", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -213,7 +214,7 @@ public class WishlistOperationsState implements WarehouseState {
         quantityField.setEnabled(false);
         // add document listener to productIdField to update productInfoField when productIdField is changed
         productIdField.getDocument().addDocumentListener(new DocumentListener() {
-            private void updateOutput(DocumentEvent e) {
+            private void updateOutput() {
                 String productId = productIdField.getText();
                 Optional<Product> product = Warehouse.instance().getProductById(productId);
 
@@ -233,17 +234,17 @@ public class WishlistOperationsState implements WarehouseState {
 
             @Override
             public void insertUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                updateOutput(e);
+                updateOutput();
             }
         });
 
@@ -285,8 +286,13 @@ public class WishlistOperationsState implements WarehouseState {
                 return;
             }
 
-            client.get().addToWishlist(productId, quantityInt);
-            System.out.println("Product added to wishlist");
+            client.get().getWishlist().getWishlistItem(productId).ifPresentOrElse(
+                    wishlistItem -> client.get().updateWishlistItemQuantity(productId,
+                            wishlistItem.getQuantity() + quantityInt),
+                    () -> client.get().addToWishlist(productId, quantityInt)
+            );
+
+            JOptionPane.showMessageDialog(frame, "Product added to wishlist");
             productIdField.setText("");
             quantityField.setText("");
         });
@@ -300,6 +306,7 @@ public class WishlistOperationsState implements WarehouseState {
 
         actionPanel.clear();
 
+        //noinspection DuplicatedCode
         actionPanel.add(productIdLabel);
         actionPanel.add(productIdField);
         actionPanel.add(productInfoLabel); // Placeholder for grid alignment
@@ -343,7 +350,7 @@ public class WishlistOperationsState implements WarehouseState {
             itemPanel.repaint();
         });
 
-        var resetButton = new JButton("Reset");
+        var resetButton = new JButton("Uncheck All");
         resetButton.addActionListener(e -> {
             for (var component : itemPanel.getComponents()) {
                 if (component instanceof RemoveWishlistItemPanel) {
@@ -352,6 +359,7 @@ public class WishlistOperationsState implements WarehouseState {
             }
         });
 
+        //noinspection DuplicatedCode
         actionPanel.clear();
 
         layout.setHorizontalGroup(
@@ -430,6 +438,7 @@ public class WishlistOperationsState implements WarehouseState {
             }
         });
 
+        //noinspection DuplicatedCode
         actionPanel.clear();
 
         layout.setHorizontalGroup(
@@ -457,13 +466,13 @@ public class WishlistOperationsState implements WarehouseState {
         );
     }
 
-    private JPanel getOrderedItemPanel(int wishlistSize, Client client) {
-        return getOrderedItemPanel(wishlistSize, client, new ArrayList<OrderItemInfo>());
+
+    private void setOrderedItemPanel(JPanel itemPanel, int wishlistSize, Client client) {
+        setOrderedItemPanel(itemPanel, wishlistSize, client, new ArrayList<>());
     }
 
-
-    private JPanel getOrderedItemPanel(int wishlistSize, Client client, List<OrderItemInfo> additionalOrders) {
-        var itemPanel = new JPanel();
+    private void setOrderedItemPanel(JPanel itemPanel, int wishlistSize, Client client,
+                                     List<OrderItemInfo> additionalOrders) {
         itemPanel.setLayout(new GridLayout(wishlistSize, 1, 5, 5));
 
         var clientWishlistIterator = client.getWishlist().getIterator();
@@ -475,15 +484,27 @@ public class WishlistOperationsState implements WarehouseState {
                     new OrderItemInfo(wishlistItem.getProductId(), wishlistItem.getQuantity(), product.getPrice())
             );
 
+            wishlistQuantityPanel.setRemoveButtonAction(e -> {
+                itemPanel.remove(wishlistQuantityPanel);
+                itemPanel.revalidate();
+                itemPanel.repaint();
+            });
+
             itemPanel.add(wishlistQuantityPanel);
         }
 
         for (var orderItem : additionalOrders) {
             var orderQuantityPanel = new OrderQuantityPanel(orderItem);
+
+            orderQuantityPanel.setRemoveButtonAction(e -> {
+                itemPanel.remove(orderQuantityPanel);
+
+                itemPanel.revalidate();
+                itemPanel.repaint();
+            });
+
             itemPanel.add(orderQuantityPanel);
         }
-
-        return itemPanel;
     }
 
     private static JPanel getChangeQuantityPanel(int wishlistSize, Client client) {
@@ -501,7 +522,6 @@ public class WishlistOperationsState implements WarehouseState {
     }
 
     private void setRemoveWishlistItemPanel(JPanel itemPanel, int wishlistSize, Client client) {
-//        var itemPanel = new JPanel();
         itemPanel.removeAll();
         itemPanel.setLayout(new GridLayout(wishlistSize, 1, 5, 5));
 
@@ -514,140 +534,81 @@ public class WishlistOperationsState implements WarehouseState {
         }
         itemPanel.revalidate();
         itemPanel.repaint();
-//        return itemPanel;
     }
 
-    private static void startOrder2() {
-        String clientId = WarehouseContext.currentClientId;
+    private void makeOrderFromOrderedItemPanels(JPanel itemPanel, Client client) {
+        var orderItemInfoList = new ArrayList<OrderItemInfo>();
 
-        if (Warehouse.instance().getClientById(clientId).isEmpty()) {
-            System.out.println("Client not found");
+        if (itemPanel.getComponents().length == 0) {
+            JOptionPane.showMessageDialog(frame, "No items in order", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        var client = Warehouse.instance().getClientById(clientId).get();
-        var prelimOrder = new PrelimOrder(clientId);
-        List<OrderItemInfo> orderInfo = orderWishlist(client, prelimOrder);
-
-        if (orderInfo.isEmpty()) {
-            System.out.println("Wishlist is empty, exiting order");
-            return;
+        for (var component : itemPanel.getComponents()) {
+            if (component instanceof OrderQuantityPanel) {
+                orderItemInfoList.add(((OrderQuantityPanel) component).getCurrentItem());
+            }
         }
 
-        System.out.println("The order is displayed below: \n");
-        double totalPrice = 0;
+        var prelimOrder = new PrelimOrder(client.getId());
+        var orderString = new StringBuilder();
+        orderString.append("<html>The order is displayed below: <br><br>");
         int itemNumber = 1;
-        for (var orderItem : orderInfo) {
-            var productOrdered = Warehouse.instance().getProductById(orderItem.getProductId()).orElseThrow();
-            System.out.printf("%d - Product Name: %s, Quantity: %d, Price: %.2f\n", itemNumber++,
-                    productOrdered.getName(), orderItem.getQuantity(),
-                    orderItem.getPrice());
+
+        for (var orderItemInfo : orderItemInfoList) {
+            var product = Warehouse.instance().getProductById(orderItemInfo.getProductId()).orElseThrow();
+
+            if (orderItemInfo.getQuantity() > product.getQuantity()) {
+                var waitlistQuantity = orderItemInfo.getQuantity() - product.getQuantity();
+                orderString.append(String.format("%d - Product Name: %s, Quantity: %d, Price: %.2f<br> &nbsp; &nbsp;" +
+                                "Waitlisted: " +
+                                "%d <br><br>", itemNumber++,
+                        product.getName(), product.getQuantity(),
+                        product.getPrice(), waitlistQuantity));
+            } else {
+                orderString.append(String.format("%d - Product Name: %s, Quantity: %d, Price: %.2f<br><br>",
+                        itemNumber++,
+                        product.getName(), orderItemInfo.getQuantity(),
+                        product.getPrice()));
+            }
+
+            prelimOrder.addOrderAction(orderItemInfo.getProductId(), orderItemInfo.getQuantity());
+
+            // check if we need to remove/update the wishlist item (if the item is in the wishlist)
+            var wishlistItem = client.getWishlist().getWishlistItem(orderItemInfo.getProductId());
+            if (wishlistItem.isPresent()) {
+                if (orderItemInfo.getQuantity() >= wishlistItem.get().getQuantity()) {
+                    prelimOrder.addRemoveWishlistAction(orderItemInfo.getProductId());
+                } else {
+                    prelimOrder.addUpdateWishlistAction(orderItemInfo.getProductId(),
+                            wishlistItem.get().getQuantity() - orderItemInfo.getQuantity());
+                }
+            }
+        }
+
+        double totalPrice = 0;
+        for (var orderItem : orderItemInfoList) {
             totalPrice += orderItem.getPrice() * orderItem.getQuantity();
         }
-        System.out.printf("Total Price: %.2f\n", totalPrice);
 
-        System.out.print("Would you like to complete the order? (y/n): ");
-        String input = Utilities.getUserInput();
-        if (input.equalsIgnoreCase("n")) {
+        orderString.append(String.format("Total Price: %.2f<br><br>", totalPrice));
+
+        var confirm = JOptionPane.showConfirmDialog(frame, orderString.toString(), "Confirm Order",
+                JOptionPane.OK_CANCEL_OPTION);
+
+        if (confirm == JOptionPane.OK_CANCEL_OPTION) {
             return;
         }
 
-        System.out.println("Please enter a description for the order: ");
-        String description = Utilities.getUserInput();
+        String description = Utilities.getValidInput(frame, "Please enter a description for the order: ",
+                "Description cannot be empty",
+                s -> !s.isEmpty());
+        if (description == null) {
+            return;
+        }
+
         prelimOrder.finalizeOrder(description);
+        JOptionPane.showMessageDialog(frame, "Order submitted");
     }
 
-    private static ArrayList<OrderItemInfo> orderWishlist(Client client, PrelimOrder currentPrelimOrder) {
-        System.out.println("Ordering Products from Wishlist: ");
-        var clientWishlistCopy = new Wishlist(client.getWishlist());
-        var clientWishlistIterator = clientWishlistCopy.getIterator();
-
-        if (!clientWishlistIterator.hasNext()) {
-            System.out.println("\nWishlist is empty");
-            return new ArrayList<>();
-        }
-
-        ArrayList<OrderItemInfo> orderItemInfoList = new ArrayList<>();
-        while (clientWishlistIterator.hasNext()) {
-            var wishlistItem = clientWishlistIterator.next();
-            Optional<Product> product = Warehouse.instance().getProductById(wishlistItem.getProductId());
-            if (product.isEmpty()) {
-                System.err.println("The product with id " + wishlistItem.getProductId() + " was not found");
-                return orderItemInfoList;
-            }
-            System.out.printf("\n\tItem: %s\n\tQuantity Wishlisted: %d\n\tQuantity Available: %d\n\tPrice: %.2f\n",
-                    product.get().getName(),
-                    wishlistItem.getQuantity(),
-                    product.get().getQuantity(),
-                    product.get().getPrice());
-
-            System.out.println("\nOptions: ");
-            System.out.println("    1. Remove from wishlist");
-            System.out.println("    2. Add amount in wishlist to order");
-            System.out.println("    3. Add different amount to order");
-            System.out.println("    4. Skip");
-            System.out.print("> ");
-
-            String input = Utilities.getUserInput();
-            switch (input) {
-                case "1": // remove from wishlist
-                    currentPrelimOrder.addRemoveWishlistAction(wishlistItem.getProductId());
-                    break;
-                case "2": // add amount in wishlist to order
-                    // storing information about the order item so that it can be printed later
-                    orderItemInfoList.add(getOrderItemInfo(product.get(), wishlistItem.getQuantity()));
-                    currentPrelimOrder.addOrderAction(wishlistItem.getProductId(), wishlistItem.getQuantity());
-                    currentPrelimOrder.addRemoveWishlistAction(wishlistItem.getProductId());
-
-                    if (product.get().getQuantity() < wishlistItem.getQuantity()) {
-                        System.out.println("Order quantity exceeds product quantity. " +
-                                (wishlistItem.getQuantity() - product.get().getQuantity()) + " will be added to " +
-                                "product waitlist.");
-                    }
-                    break;
-                case "3": // add different amount to order
-                    System.out.print("\nPlease enter the amount to add to the order: ");
-                    int quantity = Integer.parseInt(Utilities.getUserInput());
-
-                    while (quantity <= 0) {
-                        System.out.println("Quantity must be positive");
-                        System.out.print("\nPlease enter the amount to add to the order: ");
-                        quantity = Integer.parseInt(Utilities.getUserInput());
-                    }
-
-                    currentPrelimOrder.addOrderAction(wishlistItem.getProductId(), quantity);
-
-                    if (product.get().getQuantity() < quantity) {
-                        System.out.println("Order quantity exceeds product quantity. " +
-                                (quantity - product.get().getQuantity()) + " will be added to product waitlist.");
-                    }
-
-                    // storing information about the order item so that it can be printed later
-                    orderItemInfoList.add(getOrderItemInfo(product.get(), quantity));
-                    if (quantity >= wishlistItem.getQuantity()) {
-                        currentPrelimOrder.addRemoveWishlistAction(wishlistItem.getProductId());
-                    } else {
-                        currentPrelimOrder.addUpdateWishlistAction(wishlistItem.getProductId(),
-                                wishlistItem.getQuantity() - quantity);
-                    }
-                    break;
-                case "4": // skip
-                    break;
-                default:
-                    System.out.println("Invalid input");
-                    break;
-            }
-        }
-        return orderItemInfoList;
-    }
-
-    private static OrderItemInfo getOrderItemInfo(Product product, int orderQuantity) {
-        OrderItemInfo orderItemInfo;
-        if (orderQuantity <= product.getQuantity()) {
-            orderItemInfo = new OrderItemInfo(product.getId(), orderQuantity, product.getPrice());
-        } else {
-            orderItemInfo = new OrderItemInfo(product.getId(), product.getQuantity(), product.getPrice());
-        }
-        return orderItemInfo;
-    }
 }

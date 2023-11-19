@@ -12,11 +12,6 @@ public final class WishlistItem implements Serializable {
         this.quantity = quantity;
     }
 
-    public WishlistItem(WishlistItem item) {
-        this.productId = item.getProductId();
-        this.quantity = item.getQuantity();
-    }
-
     public String getProductId() {
         return productId;
     }
